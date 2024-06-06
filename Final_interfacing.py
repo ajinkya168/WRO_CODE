@@ -165,30 +165,31 @@ while True:
 				img = get_dist(rect1,img, "red")            
 	   
 	cv2.imshow('Object Dist Measure ',img)
-	print(dist2)
-	if(previous_state == 1 and button_state == 0):
-		button = not(button)
-		print("Button is pressed")
-	if(button):
-		if(dist1 < 20 or dist2 < 20):
-			print("inside")
-
-			# Set the motor speed
-			GPIO.output(16, GPIO.LOW) # Set PWMA
-		else:
-			GPIO.output(16, GPIO.HIGH) # Set PWMA
-			GPIO.output(20, GPIO.HIGH) # Set AIN1
-	else:
-	
-		GPIO.output(16, GPIO.LOW) # Set PWMA
 
 
 
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
+	print(dist2)
+	if(previous_state == 1 and button_state == 0):
+		button = not(button)
+		print("Button is pressed")
+	if(button):
+#		if(dist1 < 20 or dist2 < 20):
+#			print("inside")
+#
+#			# Set the motor speed
+#			GPIO.output(16, GPIO.LOW) # Set PWMA
+#		else: 
+			GPIO.output(16, GPIO.HIGH) # Set PWMA
+			GPIO.output(20, GPIO.HIGH) # Set AIN1
+	else:
+	
+		GPIO.output(16, GPIO.LOW) # Set PWMA
 	
 
 
 
 cv2.destroyAllWindows()
+picam2.stop()
 GPIO.cleanup()
