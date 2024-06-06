@@ -4,8 +4,17 @@ import cv2
 from picamera2 import Picamera2
 
 GPIO.setmode(GPIO.BCM)
+
+
 GPIO.setup(20, GPIO.OUT) # Connected to AIN2
 GPIO.setup(16, GPIO.OUT)
+
+GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)#Button to GPIO23
+
+previous_state = 0
+button_state = 0
+button  = False
+
 picam2 = Picamera2()
 picam2.preview_configuration.main.size = (1280,720)
 picam2.preview_configuration.main.format = "RGB888"
@@ -91,8 +100,13 @@ cv2.namedWindow('Object Dist Measure ',cv2.WINDOW_NORMAL)
 cv2.resizeWindow('Object Dist Measure ', 700,600)
 
 
+
 #loop to capture video frames
 while True:
+	previous_state = button_state
+	button_state = GPIO.input(5)
+
+		
 	img= picam2.capture_array()
 
 	hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
@@ -149,24 +163,30 @@ while True:
 				cv2.drawContours(img,[box], -1,(255,0,0),3)
 
 				img = get_dist(rect1,img, "red")            
-           
+	   
 	cv2.imshow('Object Dist Measure ',img)
+	print(dist2)
+	if(previous_state == 1 and button_state == 0):
+		button = not(button)
+		print("Button is pressed")
+	if(button):
+		if(dist1 < 20 or dist2 < 20):
+			print("inside")
+
+			# Set the motor speed
+			GPIO.output(16, GPIO.LOW) # Set PWMA
+		else:
+			GPIO.output(16, GPIO.HIGH) # Set PWMA
+			GPIO.output(20, GPIO.HIGH) # Set AIN1
+	else:
+	
+		GPIO.output(16, GPIO.LOW) # Set PWMA
 
 
 
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
 	
-	print(dist2)
-	if(dist1 < 20 or dist2 < 20):
-		print("inside")
-		GPIO.output(20, GPIO.HIGH) # Set AIN1
-		# Set the motor speed
-		GPIO.output(16, GPIO.HIGH) # Set PWMA
-	else:
-		GPIO.output(16, GPIO.LOW) # Set PWMA
-
-
 
 
 
