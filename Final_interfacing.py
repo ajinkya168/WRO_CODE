@@ -2,6 +2,9 @@ import numpy as np
 import RPi.GPIO as GPIO
 import cv2
 from picamera2 import Picamera2
+import time
+
+time.sleep(5)
 
 GPIO.setmode(GPIO.BCM)
 
@@ -85,7 +88,7 @@ def get_dist(rectange_params,image, block):
 
 
 #Extract Frames 
-cap = cv2.VideoCapture(0)
+#cap = cv2.VideoCapture(0)
 
 #basic constants for opencv Functs
 kernel = np.ones((3,3),'uint8')
@@ -118,7 +121,7 @@ while True:
 	upper = np.array([87, 162, 255])
 	mask = cv2.inRange(hsv_img, lower, upper)
 
-	lower1 = np.array([169, 40, 0])
+	lower1 = np.array([128, 121, 62])
 	upper1 = np.array([179, 255, 255])
 	mask1 = cv2.inRange(hsv_img1, lower1, upper1)
 
@@ -175,12 +178,12 @@ while True:
 		button = not(button)
 		print("Button is pressed")
 	if(button):
-#		if(dist1 < 20 or dist2 < 20):
-#			print("inside")
-#
-#			# Set the motor speed
-#			GPIO.output(16, GPIO.LOW) # Set PWMA
-#		else: 
+		if(dist1 < 20 or dist2 < 20):
+			print("inside")
+
+			# Set the motor speed
+			GPIO.output(16, GPIO.LOW) # Set PWMA
+		else: 
 			GPIO.output(16, GPIO.HIGH) # Set PWMA
 			GPIO.output(20, GPIO.HIGH) # Set AIN1
 	else:
