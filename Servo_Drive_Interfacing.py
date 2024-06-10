@@ -40,6 +40,8 @@ GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)#Button to GPIO23
 
 previous_state = 0
 button_state = 0
+
+flag = False
 button  = False
 
 picam2 = Picamera2()
@@ -83,13 +85,8 @@ def find_heading(dqw, dqx, dqy, dqz):
         yaw = abs(yaw)
     return yaw  # heading in 360 clockwise
 
-def circumvent():
-	servo.min()
-	time.sleep(0.5)
-	servo.mid()
-	time.sleep(0.5)
-	GPIO.output(16, GPIO.HIGH) # Set PWMA
-	GPIO.output(20, GPIO.HIGH)
+
+
 
 def BrightnessContrast(brightness=0): 
   
@@ -160,12 +157,19 @@ cv2.resizeWindow('Object Dist Measure ', 700,600)
 
 
 
-#loop to capture video frames
+
 while True:
+
 	previous_state = button_state
 	button_state = GPIO.input(5)
 
 		
+	if(previous_state == 1 and button_state == 0):
+		button = not(button)
+		print("Button is pressed")
+
+	#loop to capture video frames
+
 	img= picam2.capture_array()
 
 	hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
@@ -223,32 +227,34 @@ while True:
 
 				img = get_dist(rect1,img, "red")            
 	   
-	cv2.imshow('Object Dist Measure ',img)
+
 
 
 
 	if cv2.waitKey(1) & 0xFF == ord('q'):
+		break_flag = True;
 		break
 	print(dist2)
-	if(previous_state == 1 and button_state == 0):
-		button = not(button)
-		print("Button is pressed")
+	
 	if(button):
-		if(dist1 < 20 or dist2 < 20):
-				print("inside")
-				circumvent()
- # Set AIN1
-				# Set the motor speed
-				#GPIO.output(16, GPIO.LOW) # Set PWMA
-		else: 
-				GPIO.output(16, GPIO.HIGH) # Set PWMA
-				GPIO.output(20, GPIO.HIGH) # Set AIN1
+		cv2.imshow('Object Dist Measure ',img)
+		#GPIO.output(16, GPIO.HIGH) # Set PWMA
+		#GPIO.output(20, GPIO.HIGH) # Set AIN1	
+		if(dist1 < 20 or dist2 < 20) :
+
+			print("inside")
+
+
+
+			
+			
+
 	else:
-	
+
 		GPIO.output(16, GPIO.LOW) # Set PWMA
+
+
 	
-
-
 
 cv2.destroyAllWindows()
 picam2.stop()
