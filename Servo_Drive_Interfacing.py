@@ -54,6 +54,10 @@ pwm.set_mode(servo, pigpio.OUTPUT)
 
 pwm.set_PWM_frequency(servo, 50)
 
+def SetAngle(angle):
+	pwm.set_servo_pulsewidth(servo, 500 + round(angle*11.11)) # 0 degree
+
+
 def find_heading(dqw, dqx, dqy, dqz):
     norm = sqrt(dqw * dqw + dqx * dqx + dqy * dqy + dqz * dqz)
     dqw = dqw / norm
@@ -228,16 +232,13 @@ while True:
 		break_flag = True;
 		break
 	print(dist2)
-	pwm.set_servo_pulsewidth(servo, 1500)
+	SetAngle(90)
 	if(button):
 		cv2.imshow('Object Dist Measure ',img)
-		pwm.set_servo_pulsewidth(servo, 1500)
-		time.sleep(0.001)
-		time.sleep(0.001)
 		GPIO.output(16, GPIO.HIGH) # Set PWMA
 		GPIO.output(20, GPIO.HIGH) # Set AIN1	
 		if(dist1 < 20 or dist2 < 20) :
-			pwm.set_servo_pulsewidth(servo, 500)
+			SetAngle(45)
 			time.sleep(0.001)
 			print("inside")
 
