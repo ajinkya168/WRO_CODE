@@ -30,6 +30,7 @@ def read_ser(num_char = 1):
 
 # Write whole strings
 def write_ser(cmd):
+	cmd = str(cmd)
 	cmd = cmd + '\n'
 	port.write(cmd.encode())
 
@@ -39,7 +40,7 @@ while(1):
 	if(len(string)):
 		print(string)
 
-	cmd = input() # Blocking, there're solutions for this ;)
+	cmd = 2 # Blocking, there're solutions for this ;)
 	if(cmd):
 		write_ser(cmd)
 		

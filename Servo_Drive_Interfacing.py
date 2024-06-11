@@ -7,26 +7,12 @@ import board
 import busio
 from math import atan2, sqrt, pi
 from gpiozero import Servo
-
-from adafruit_bno08x import (
-    BNO_REPORT_ACCELEROMETER,
-    BNO_REPORT_GYROSCOPE,
-    BNO_REPORT_MAGNETOMETER,
-    BNO_REPORT_ROTATION_VECTOR,
-)
-from adafruit_bno08x.i2c import BNO08X_I2C
+import pigpio
 
 
 
 
 time.sleep(5)
-
-i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
-bno = BNO08X_I2C(i2c)
-bno.enable_feature(BNO_REPORT_ACCELEROMETER)
-bno.enable_feature(BNO_REPORT_GYROSCOPE)
-bno.enable_feature(BNO_REPORT_MAGNETOMETER)
-bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
 
 
@@ -60,7 +46,13 @@ width = 4
 dist1 = 0
 dist2 = 0
 
-servo = Servo(23)
+servo = 23
+
+pwm = pigpio.pi()
+
+pwm.set_mode(servo, pigpio.OUTPUT)
+
+pwm.set_PWM_frequency(servo, 50)
 
 def find_heading(dqw, dqx, dqy, dqz):
     norm = sqrt(dqw * dqw + dqx * dqx + dqy * dqy + dqz * dqz)
@@ -163,7 +155,8 @@ while True:
 	previous_state = button_state
 	button_state = GPIO.input(5)
 
-		
+
+
 	if(previous_state == 1 and button_state == 0):
 		button = not(button)
 		print("Button is pressed")
@@ -181,7 +174,7 @@ while True:
 	upper = np.array([87, 162, 255])
 	mask = cv2.inRange(hsv_img, lower, upper)
 
-	lower1 = np.array([128, 121, 62])
+	lower1 = np.array([151, 82, 93])
 	upper1 = np.array([179, 255, 255])
 	mask1 = cv2.inRange(hsv_img1, lower1, upper1)
 
@@ -235,19 +228,18 @@ while True:
 		break_flag = True;
 		break
 	print(dist2)
-	
+	pwm.set_servo_pulsewidth(servo, 1500)
 	if(button):
 		cv2.imshow('Object Dist Measure ',img)
-		#GPIO.output(16, GPIO.HIGH) # Set PWMA
-		#GPIO.output(20, GPIO.HIGH) # Set AIN1	
+		pwm.set_servo_pulsewidth(servo, 1500)
+		time.sleep(0.001)
+		time.sleep(0.001)
+		GPIO.output(16, GPIO.HIGH) # Set PWMA
+		GPIO.output(20, GPIO.HIGH) # Set AIN1	
 		if(dist1 < 20 or dist2 < 20) :
-
+			pwm.set_servo_pulsewidth(servo, 500)
+			time.sleep(0.001)
 			print("inside")
-
-
-
-			
-			
 
 	else:
 
