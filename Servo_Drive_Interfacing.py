@@ -10,6 +10,20 @@ from gpiozero import Servo
 import pigpio
 
 
+from adafruit_bno08x import (
+    BNO_REPORT_ACCELEROMETER,
+    BNO_REPORT_GYROSCOPE,
+    BNO_REPORT_MAGNETOMETER,
+    BNO_REPORT_ROTATION_VECTOR,
+)
+from adafruit_bno08x.i2c import BNO08X_I2C
+i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
+bno = BNO08X_I2C(i2c)
+bno.enable_feature(BNO_REPORT_ACCELEROMETER)
+bno.enable_feature(BNO_REPORT_GYROSCOPE)
+bno.enable_feature(BNO_REPORT_MAGNETOMETER)
+bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
+
 
 
 time.sleep(5)
@@ -27,7 +41,7 @@ GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)#Button to GPIO23
 previous_state = 0
 button_state = 0
 
-flag = False
+
 button  = False
 
 picam2 = Picamera2()
@@ -48,11 +62,55 @@ dist2 = 0
 
 servo = 23
 
+turn_flag = False
+currentAngle =0
 pwm = pigpio.pi()
 
 pwm.set_mode(servo, pigpio.OUTPUT)
 
 pwm.set_PWM_frequency(servo, 50)
+
+def correctAngle():
+	error_gyro = 0
+	prevErrorGyro = 0
+	totalErrorGyro = 0
+	correcion = 0
+	totalError = 0
+	prevError = 0
+	kp = 0.5
+	ki = 0
+	kd = 0
+	error_gyro = currentAngle - 0
+	setPoint_flag =  0
+
+	pTerm = 0
+	dTerm = 0
+	iTerm = 0
+
+	pTerm = kp * error_gyro
+	dTerm = kd * (error_gyro - prevErrorGyro)
+	totalErrorGyro += error_gyro
+	iTerm = ki * totalErrorGyro
+	correction = pTerm + iTerm + dTerm;
+	if (setPoint_flag == 0) :
+		if (correction > 10) :
+			correction = 10
+		elif (correction < -10): 
+			correction = -10
+
+	else: 
+		if (correction > 35) :
+			correction = 35
+		elif (correction < -35) :
+			correction = -35
+			
+	
+
+	prevErrorGyro = error_gyro
+
+	SetAngle(90 + correction)
+	
+
 
 def SetAngle(angle):
 	pwm.set_servo_pulsewidth(servo, 500 + round(angle*11.11)) # 0 degree
@@ -73,7 +131,7 @@ def find_heading(dqw, dqx, dqy, dqz):
     
    
     yaw = yaw_raw * 180.0 / pi
-    yaw = yaw - 180
+    yaw = yaw - 180 
 
     if yaw > 0:
         yaw = 360 - yaw
@@ -158,9 +216,10 @@ while True:
 
 	previous_state = button_state
 	button_state = GPIO.input(5)
+	quat_i, quat_j, quat_k, quat_real = bno.quaternion
 
-
-
+	currentAngle = find_heading(quat_real, quat_i, quat_j, quat_k)
+	print("Current Heading", currentAngle)
 	if(previous_state == 1 and button_state == 0):
 		button = not(button)
 		print("Button is pressed")
@@ -178,7 +237,7 @@ while True:
 	upper = np.array([87, 162, 255])
 	mask = cv2.inRange(hsv_img, lower, upper)
 
-	lower1 = np.array([151, 82, 93])
+	lower1 = np.array([129, 103, 84])
 	upper1 = np.array([179, 255, 255])
 	mask1 = cv2.inRange(hsv_img1, lower1, upper1)
 
@@ -238,9 +297,9 @@ while True:
 		GPIO.output(16, GPIO.HIGH) # Set PWMA
 		GPIO.output(20, GPIO.HIGH) # Set AIN1	
 		if(dist1 < 20 or dist2 < 20) :
-			SetAngle(45)
-			time.sleep(0.001)
-			print("inside")
+				SetAngle(45)
+				correctAngle()
+				print("inside")
 
 	else:
 
