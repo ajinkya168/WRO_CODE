@@ -337,7 +337,7 @@ def servoDrive(distance):
 		
 		print("Process 2: {}", distance)
 		while(1):
-			if(distance.value > 35):
+			if(distance.value > 25):
 				flag = True
 				break
 			if(flag):
