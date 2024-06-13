@@ -1,6 +1,10 @@
 import time
 import board
 import busio
+import RPi.GPIO as GPIO
+import pigpio
+import time
+
 from math import atan2, sqrt, pi
 
 from adafruit_bno08x import (
@@ -18,6 +22,63 @@ bno.enable_feature(BNO_REPORT_MAGNETOMETER)
 bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
 
+servo = 23
+
+
+
+
+pwm = pigpio.pi()
+pwm.set_mode(servo, pigpio.OUTPUT)
+
+pwm.set_PWM_frequency( servo, 50 )
+
+
+def correctAngle(currentAngle):
+	error_gyro = 0
+	prevErrorGyro = 0
+	totalErrorGyro = 0
+	correcion = 0
+	totalError = 0
+	prevError = 0
+	kp = 1
+	ki = 0.5
+	kd = 0
+	setPoint_flag =  0
+
+	error_gyro = currentAngle - 0
+
+	pTerm = 0
+	dTerm = 0
+	iTerm = 0
+
+	pTerm = kp * error_gyro
+	dTerm = kd * (error_gyro - prevErrorGyro)
+	totalErrorGyro += error_gyro
+	iTerm = ki * totalErrorGyro
+	correction = pTerm + iTerm + dTerm;
+	if (setPoint_flag == 0) :
+		if (correction > 25) :
+			correction = 25
+		elif (correction < -25): 
+			correction = -25
+
+	else: 
+		if (correction > 45) :
+			correction = 45
+		elif (correction < -45) :
+			correction = -45
+			
+	
+
+	prevErrorGyro = error_gyro
+
+	setAngle(91 + correction)
+
+
+
+def setAngle(angle):
+	pwm.set_servo_pulsewidth( servo, 500 + round(angle*11.11) )
+	
 def find_heading(dqw, dqx, dqy, dqz):
     norm = sqrt(dqw * dqw + dqx * dqx + dqy * dqy + dqz * dqz)
     dqw = dqw / norm
@@ -58,6 +119,7 @@ while True:
 	#print("")
 	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
 	print("Heading using rotation vector:", heading)
+	correctAngle(heading)
 	
 
 GPIO.cleanup()

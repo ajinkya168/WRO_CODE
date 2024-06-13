@@ -3,12 +3,11 @@ import RPi.GPIO as GPIO
 import cv2
 from picamera2 import Picamera2
 import time
+import multiprocessing
+import pigpio
 import board
 import busio
 from math import atan2, sqrt, pi
-from gpiozero import Servo
-import pigpio
-
 
 from adafruit_bno08x import (
     BNO_REPORT_ACCELEROMETER,
@@ -30,6 +29,7 @@ time.sleep(5)
 
 
 
+
 GPIO.setmode(GPIO.BCM)
 
 
@@ -38,18 +38,14 @@ GPIO.setup(16, GPIO.OUT)
 
 GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)#Button to GPIO23
 
-previous_state = 0
-button_state = 0
+#Parameters for servo
+servo = 23
+pwm = pigpio.pi()
 
+pwm.set_mode(servo, pigpio.OUTPUT)
 
-button  = False
+pwm.set_PWM_frequency(servo, 50)
 
-picam2 = Picamera2()
-picam2.preview_configuration.main.size = (1280,720)
-picam2.preview_configuration.main.format = "RGB888"
-picam2.preview_configuration.align()
-picam2.configure("preview")
-picam2.start()
 
 #Define object specific variables for green  
 dist = 15
@@ -60,28 +56,29 @@ width = 4
 dist1 = 0
 dist2 = 0
 
-servo = 23
-
-turn_flag = False
 currentAngle =0
-pwm = pigpio.pi()
+error_gyro = 0
+prevErrorGyro = 0
+totalErrorGyro = 0
+correcion = 0
+totalError = 0
+prevError = 0
+kp = 1
+ki = 0.5
+kd = 0
+setPoint_flag =  0
 
-pwm.set_mode(servo, pigpio.OUTPUT)
 
-pwm.set_PWM_frequency(servo, 50)
 
+
+def getAngle():
+	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
+
+	return heading
+	
 def correctAngle():
-	error_gyro = 0
-	prevErrorGyro = 0
-	totalErrorGyro = 0
-	correcion = 0
-	totalError = 0
-	prevError = 0
-	kp = 0.5
-	ki = 0
-	kd = 0
+	currentAngle = getAngle()
 	error_gyro = currentAngle - 0
-	setPoint_flag =  0
 
 	pTerm = 0
 	dTerm = 0
@@ -111,11 +108,6 @@ def correctAngle():
 	SetAngle(90 + correction)
 	
 
-
-def SetAngle(angle):
-	pwm.set_servo_pulsewidth(servo, 500 + round(angle*11.11)) # 0 degree
-
-
 def find_heading(dqw, dqx, dqy, dqz):
     norm = sqrt(dqw * dqw + dqx * dqx + dqy * dqy + dqz * dqz)
     dqw = dqw / norm
@@ -131,7 +123,7 @@ def find_heading(dqw, dqx, dqy, dqz):
     
    
     yaw = yaw_raw * 180.0 / pi
-    yaw = yaw - 180 
+    yaw = yaw - 180
 
     if yaw > 0:
         yaw = 360 - yaw
@@ -139,6 +131,11 @@ def find_heading(dqw, dqx, dqy, dqz):
         yaw = abs(yaw)
     return yaw  # heading in 360 clockwise
 
+
+
+
+def setAngle(angle):
+	pwm.set_servo_pulsewidth(servo, 500 + round(angle*11.11)) # 0 degree
 
 
 
@@ -206,108 +203,145 @@ color = (0, 0, 255)
 thickness = 2
 
 
-cv2.namedWindow('Object Dist Measure ',cv2.WINDOW_NORMAL)
-cv2.resizeWindow('Object Dist Measure ', 700,600)
+
+#loop to capture video frames
+def Live_Feed(distance):
+
+	picam2 = Picamera2()
+	picam2.preview_configuration.main.size = (1280,720)
+	picam2.preview_configuration.main.format = "RGB888"
+	picam2.preview_configuration.align()
+	picam2.configure("preview")
+	picam2.start()
+	previous_state = 0
+	button_state = 0
+	button  = False
+	
+	
+	cv2.namedWindow('Object Dist Measure ',cv2.WINDOW_NORMAL)
+	cv2.resizeWindow('Object Dist Measure ', 900,800)
+
+	while True:
+		previous_state = button_state
+		button_state = GPIO.input(5)
+		
+
+
+		img= picam2.capture_array()
+
+		hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+		hsv_img1 = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+
+		#predefined mask for green colour detection
+		lower = np.array([55, 37, 0])
+		upper = np.array([87, 162, 255])
+		mask = cv2.inRange(hsv_img, lower, upper)
+
+		lower1 = np.array([128, 121, 62])
+		upper1 = np.array([179, 255, 255])
+		mask1 = cv2.inRange(hsv_img1, lower1, upper1)
 
 
 
-
-while True:
-
-	previous_state = button_state
-	button_state = GPIO.input(5)
-	quat_i, quat_j, quat_k, quat_real = bno.quaternion
-
-	currentAngle = find_heading(quat_real, quat_i, quat_j, quat_k)
-	print("Current Heading", currentAngle)
-	if(previous_state == 1 and button_state == 0):
-		button = not(button)
-		print("Button is pressed")
-
-	#loop to capture video frames
-
-	img= picam2.capture_array()
-
-	hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-	hsv_img1 = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+		#Remove Extra garbage from image
+		d_img = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel,iterations = 5)
+		d_img1 = cv2.morphologyEx(mask1, cv2.MORPH_OPEN, kernel,iterations = 5)
 
 
-	#predefined mask for green colour detection
-	lower = np.array([55, 37, 0])
-	upper = np.array([87, 162, 255])
-	mask = cv2.inRange(hsv_img, lower, upper)
+		#find the histogram
+		cont,hei = cv2.findContours(d_img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+		cont = sorted(cont, key = cv2.contourArea, reverse = True)[:1]
 
-	lower1 = np.array([129, 103, 84])
-	upper1 = np.array([179, 255, 255])
-	mask1 = cv2.inRange(hsv_img1, lower1, upper1)
+		cont1,hei1 = cv2.findContours(d_img1,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+		cont1 = sorted(cont1, key = cv2.contourArea, reverse = True)[:1]
 
 
 
-	#Remove Extra garbage from image
-	d_img = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel,iterations = 5)
-	d_img1 = cv2.morphologyEx(mask1, cv2.MORPH_OPEN, kernel,iterations = 5)
+		for cnt, cnt1 in zip(cont, cont1):
+		#check for contour area
+			if(cv2.contourArea(cnt) > cv2.contourArea(cnt1)):
+				if (cv2.contourArea(cnt)>100 and cv2.contourArea(cnt)<306000):
 
+					#Draw a rectange on the contour
+					rect = cv2.minAreaRect(cnt)
+					box = cv2.boxPoints(rect) 
+					box = np.int0(box)
+					cv2.drawContours(img,[box], -1,(255,0,0),3)
 
-	#find the histogram
-	cont,hei = cv2.findContours(d_img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-	cont = sorted(cont, key = cv2.contourArea, reverse = True)[:1]
+					img = get_dist(rect,img, "green")
+		    
 
-	cont1,hei1 = cv2.findContours(d_img1,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-	cont1 = sorted(cont1, key = cv2.contourArea, reverse = True)[:1]
+		#check for contour area
+			else:
+				if (cv2.contourArea(cnt1)>100 and cv2.contourArea(cnt1)<306000):
 
+					#Draw a rectange on the contour
+					rect1 = cv2.minAreaRect(cnt1)
+					box = cv2.boxPoints(rect1) 
+					box = np.int0(box)
+					cv2.drawContours(img,[box], -1,(255,0,0),3)
 
-
-	for cnt, cnt1 in zip(cont, cont1):
-	#check for contour area
-		if(cv2.contourArea(cnt) > cv2.contourArea(cnt1)):
-			if (cv2.contourArea(cnt)>100 and cv2.contourArea(cnt)<306000):
-
-				#Draw a rectange on the contour
-				rect = cv2.minAreaRect(cnt)
-				box = cv2.boxPoints(rect) 
-				box = np.int0(box)
-				cv2.drawContours(img,[box], -1,(255,0,0),3)
-
-				img = get_dist(rect,img, "green")
-	    
-
-	#check for contour area
-		else:
-			if (cv2.contourArea(cnt1)>100 and cv2.contourArea(cnt1)<306000):
-
-				#Draw a rectange on the contour
-				rect1 = cv2.minAreaRect(cnt1)
-				box = cv2.boxPoints(rect1) 
-				box = np.int0(box)
-				cv2.drawContours(img,[box], -1,(255,0,0),3)
-
-				img = get_dist(rect1,img, "red")            
-	   
-
-
-
-
-	if cv2.waitKey(1) & 0xFF == ord('q'):
-		break_flag = True;
-		break
-	print(dist2)
-	SetAngle(90)
-	if(button):
+					img = get_dist(rect1,img, "red")            
+		   
 		cv2.imshow('Object Dist Measure ',img)
-		GPIO.output(16, GPIO.HIGH) # Set PWMA
-		GPIO.output(20, GPIO.HIGH) # Set AIN1	
-		if(dist1 < 20 or dist2 < 20) :
-				SetAngle(45)
-				correctAngle()
-				print("inside")
 
-	else:
 
-		GPIO.output(16, GPIO.LOW) # Set PWMA
+
+		if cv2.waitKey(1) & 0xFF == ord('q'):
+			break
+		print(dist2)
+
+		if(previous_state == 1 and button_state == 0):
+			button = not(button)
+			print("Button is pressed")
+		if(button):
+			distance.value = dist2
+			if(dist1 < 25 or dist2 < 25):
+					print("inside")
+
+					# Set the motor speed
+					GPIO.output(16, GPIO.LOW) # Set PWMA
+			else: 
+					GPIO.output(16, GPIO.HIGH) # Set PWMA
+					GPIO.output(20, GPIO.HIGH) # Set AIN1
+		else:
+		
+			GPIO.output(16, GPIO.LOW) # Set PWMA
+
+	cv2.destroyAllWindows()
+	picam2.stop()
+	GPIO.cleanup()
 
 
 	
+def servoDrive(distance):
+	flag = False
+	while True:
 
-cv2.destroyAllWindows()
-picam2.stop()
-GPIO.cleanup()
+
+		setAngle(90)
+		if(distance.value == 0):
+			setAngle(90)		
+		print("Process 2: {}", distance)
+		while(1):
+			if(distance.value > 25):
+				flag = True
+				break
+			if(flag):
+				setAngle(45)
+				time.sleep(1)
+				setAngle(90)
+				#correctAngle()
+				flag = False
+		
+
+
+
+
+
+if __name__ == '__main__':
+	distance = multiprocessing.Value('f')
+	P = multiprocessing.Process(target = Live_Feed, args = (distance, ))
+	S = multiprocessing.Process(target = servoDrive, args = (distance, ))
+	P.start()
+	S.start()
