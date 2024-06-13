@@ -33,20 +33,32 @@ pwm.set_mode(servo, pigpio.OUTPUT)
 pwm.set_PWM_frequency( servo, 50 )
 
 
-def correctAngle(currentAngle):
+kp = 1
+ki = 0.5
+kd = 0
+
+setPoint_flag =  0
+
+
+def correctAngle(setPoint_gyro):
+
 	error_gyro = 0
 	prevErrorGyro = 0
 	totalErrorGyro = 0
-	correcion = 0
+	correction = 0
 	totalError = 0
 	prevError = 0
-	kp = 1
-	ki = 0.5
-	kd = 0
-	setPoint_flag =  0
+	
+	quat_i, quat_j, quat_k, quat_real = bno.quaternion
+	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
+	if(heading > 180):
+		heading =  heading - 360
 
-	error_gyro = currentAngle - 0
+	print("Heading :", heading)
+	error_gyro = heading - setPoint_gyro
+		
 
+	print("Error : ", error_gyro)
 	pTerm = 0
 	dTerm = 0
 	iTerm = 0
@@ -56,23 +68,25 @@ def correctAngle(currentAngle):
 	totalErrorGyro += error_gyro
 	iTerm = ki * totalErrorGyro
 	correction = pTerm + iTerm + dTerm;
-	if (setPoint_flag == 0) :
-		if (correction > 25) :
-			correction = 25
-		elif (correction < -25): 
-			correction = -25
-
-	else: 
-		if (correction > 45) :
-			correction = 45
-		elif (correction < -45) :
-			correction = -45
-			
 	
+	if (setPoint_flag == 0) :
+		if (correction > 30) :
+			correction = 30
+		elif (correction < -30): 
+			correction = -30
+
+	else:
+	 
+		if (correction > 35) :
+			correction = 35
+		elif (correction < -35) :
+			correction = -35
+			
+	print("correction: ", correction)	
 
 	prevErrorGyro = error_gyro
 
-	setAngle(91 + correction)
+	setAngle(91 - correction)
 
 
 
@@ -103,23 +117,18 @@ def find_heading(dqw, dqx, dqy, dqz):
     return yaw  # heading in 360 clockwise
   
 
+if __name__ == '__main__':
+	setPoint = float(input())
 
-while True:
-	time.sleep(0.5)
-	print("Gyro:")
-	#gyro_x, gyro_y, gyro_z = bno.gyro # pylint:disable=no-member
-	#print("X: %0.6f Y: %0.6f Z: %0.6f rads/s" % (gyro_x, gyro_y, gyro_z))
-	#print("")
-	quat_i, quat_j, quat_k, quat_real = bno.quaternion
-	print("Rotation Vector Quaternion:")
-	#quat_i, quat_j, quat_k, quat_real = bno.quaternion  # pylint:disable=no-member
-	#print(
-	#"I: %0.6f  J: %0.6f K: %0.6f  Real: %0.6f" % (quat_i, quat_j, quat_k, quat_real)
-	#)
-	#print("")
-	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
-	print("Heading using rotation vector:", heading)
-	correctAngle(heading)
+	while True:
+		time.sleep(0.1)
+
+		#gyro_x, gyro_y, gyro_z = bno.gyro # pylint:disable=no-member
+		#print("X: %0.6f Y: %0.6f Z: %0.6f rads/s" % (gyro_x, gyro_y, gyro_z))
+		#print("")
+
+		correctAngle(setPoint)
+		
 	
 
 GPIO.cleanup()

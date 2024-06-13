@@ -69,17 +69,26 @@ kd = 0
 setPoint_flag =  0
 
 
-
-
-def getAngle():
-	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
-
-	return heading
 	
-def correctAngle():
-	currentAngle = getAngle()
-	error_gyro = currentAngle - 0
+def correctAngle(setPoint_gyro):
 
+	error_gyro = 0
+	prevErrorGyro = 0
+	totalErrorGyro = 0
+	correction = 0
+	totalError = 0
+	prevError = 0
+	
+	quat_i, quat_j, quat_k, quat_real = bno.quaternion
+	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
+	if(heading > 180):
+		heading =  heading - 360
+
+	print("Heading :", heading)
+	error_gyro = heading - setPoint_gyro
+		
+
+	print("Error : ", error_gyro)
 	pTerm = 0
 	dTerm = 0
 	iTerm = 0
@@ -89,23 +98,25 @@ def correctAngle():
 	totalErrorGyro += error_gyro
 	iTerm = ki * totalErrorGyro
 	correction = pTerm + iTerm + dTerm;
+	
 	if (setPoint_flag == 0) :
-		if (correction > 10) :
-			correction = 10
-		elif (correction < -10): 
-			correction = -10
+		if (correction > 30) :
+			correction = 30
+		elif (correction < -30): 
+			correction = -30
 
-	else: 
+	else:
+	 
 		if (correction > 35) :
 			correction = 35
 		elif (correction < -35) :
 			correction = -35
 			
-	
+	print("correction: ", correction)	
 
 	prevErrorGyro = error_gyro
 
-	SetAngle(90 + correction)
+	setAngle(91 - correction)
 	
 
 def find_heading(dqw, dqx, dqy, dqz):
@@ -318,20 +329,21 @@ def servoDrive(distance):
 	flag = False
 	while True:
 
+		quat_i, quat_j, quat_k, quat_real = bno.quaternion
 
-		setAngle(90)
-		if(distance.value == 0):
-			setAngle(90)		
+		heading = find_heading(quat_real, quat_i, quat_j, quat_k)
+		print("Heading using rotation vector:", heading)
+		correctAngle(0)
+		
 		print("Process 2: {}", distance)
 		while(1):
-			if(distance.value > 25):
+			if(distance.value > 35):
 				flag = True
 				break
 			if(flag):
 				setAngle(45)
 				time.sleep(1)
-				setAngle(90)
-				#correctAngle()
+				correctAngle(0)
 				flag = False
 		
 
