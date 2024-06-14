@@ -40,11 +40,12 @@ def find_heading(dqw, dqx, dqy, dqz):
     else:
         yaw = abs(yaw)
     return yaw  # heading in 360 clockwise
-  
 
 
 while True:
-	time.sleep(0.5)
+  
+	reset_flag = False	
+	time.sleep(0.1)
 	print("Gyro:")
 	#gyro_x, gyro_y, gyro_z = bno.gyro # pylint:disable=no-member
 	#print("X: %0.6f Y: %0.6f Z: %0.6f rads/s" % (gyro_x, gyro_y, gyro_z))
@@ -57,6 +58,10 @@ while True:
 	#)
 	#print("")
 	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
+	if(heading > 90):
+		print("Resetting imu")
+		reset_flag = True
+
 	print("Heading using rotation vector:", heading)
 	
 

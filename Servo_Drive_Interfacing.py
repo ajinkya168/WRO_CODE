@@ -185,7 +185,8 @@ def get_dist(rectange_params,image, block):
 
 
     #calculate distance
-	if block == "green": 
+	if block == "green":
+
 		image = cv2.putText(image, 'Distance from Camera GREEN in CM :', org, font,  
 		1, color, 2, cv2.LINE_AA)
 
@@ -193,6 +194,7 @@ def get_dist(rectange_params,image, block):
 		fontScale, color, 1, cv2.LINE_AA)
 
 	else:
+
 		image = cv2.putText(image, 'Distance from Camera RED in CM :', (700, 20), font,  
 		1, color, 2, cv2.LINE_AA)
 
@@ -216,7 +218,7 @@ thickness = 2
 
 
 #loop to capture video frames
-def Live_Feed(distance):
+def Live_Feed(distance, block):
 
 	picam2 = Picamera2()
 	picam2.preview_configuration.main.size = (1280,720)
@@ -280,7 +282,8 @@ def Live_Feed(distance):
 					cv2.drawContours(img,[box], -1,(255,0,0),3)
 
 					img = get_dist(rect,img, "green")
-		    
+					distance.value = dist1
+					block.value = 1		    
 
 		#check for contour area
 			else:
@@ -293,7 +296,8 @@ def Live_Feed(distance):
 					cv2.drawContours(img,[box], -1,(255,0,0),3)
 
 					img = get_dist(rect1,img, "red")            
-		   
+					distance.value = dist2
+					block.value = 0		   
 		cv2.imshow('Object Dist Measure ',img)
 
 
@@ -306,12 +310,13 @@ def Live_Feed(distance):
 			button = not(button)
 			print("Button is pressed")
 		if(button):
-			distance.value = dist2
+			
 			if(dist1 < 25 or dist2 < 25):
 					print("inside")
 
 					# Set the motor speed
-					GPIO.output(16, GPIO.LOW) # Set PWMA
+					GPIO.output(16, GPIO.HIGH) # Set PWMA
+					GPIO.output(20, GPIO.HIGH) # Set AIN1
 			else: 
 					GPIO.output(16, GPIO.HIGH) # Set PWMA
 					GPIO.output(20, GPIO.HIGH) # Set AIN1
@@ -325,7 +330,7 @@ def Live_Feed(distance):
 
 
 	
-def servoDrive(distance):
+def servoDrive(distance, block):
 	flag = False
 	while True:
 
@@ -337,15 +342,27 @@ def servoDrive(distance):
 		
 		print("Process 2: {}", distance)
 		while(1):
-			if(distance.value > 25):
+			if(distance.value > 25 ):
 				flag = True
 				break
-			if(flag):
+			if(flag and block.value == 1):
+				setAngle(45)
+				time.sleep(1)
+				correctAngle(0)
+				time.sleep(0.5)
+				setAngle(135)
+				time.sleep(1)
+				correctAngle(0)
+				flag = False
+			elif(flag  and block.value == 0):
+				setAngle(135)
+				time.sleep(1)
+				correctAngle(0)
+				time.sleep(0.5)
 				setAngle(45)
 				time.sleep(1)
 				correctAngle(0)
 				flag = False
-		
 
 
 
@@ -353,7 +370,10 @@ def servoDrive(distance):
 
 if __name__ == '__main__':
 	distance = multiprocessing.Value('f')
-	P = multiprocessing.Process(target = Live_Feed, args = (distance, ))
-	S = multiprocessing.Process(target = servoDrive, args = (distance, ))
+	block = multiprocessing.Value('i')
+	P = multiprocessing.Process(target = Live_Feed, args = (distance, block, ))
+	S = multiprocessing.Process(target = servoDrive, args = (distance, block, ))
 	P.start()
 	S.start()
+	
+
