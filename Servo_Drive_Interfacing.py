@@ -16,6 +16,8 @@ from adafruit_bno08x import (
     BNO_REPORT_ROTATION_VECTOR,
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
+
+GPIO.cleanup()
 i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
 bno = BNO08X_I2C(i2c)
 bno.enable_feature(BNO_REPORT_ACCELEROMETER)
@@ -24,10 +26,7 @@ bno.enable_feature(BNO_REPORT_MAGNETOMETER)
 bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
 
-
 time.sleep(5)
-
-
 
 
 GPIO.setmode(GPIO.BCM)
@@ -246,11 +245,11 @@ def Live_Feed(distance, block):
 		hsv_img1 = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
 
 		#predefined mask for green colour detection
-		lower = np.array([55, 37, 0])
-		upper = np.array([87, 162, 255])
+		lower = np.array([26, 75, 0])
+		upper = np.array([89, 255, 255])
 		mask = cv2.inRange(hsv_img, lower, upper)
 
-		lower1 = np.array([128, 121, 62])
+		lower1 = np.array([0, 70, 81])
 		upper1 = np.array([179, 255, 255])
 		mask1 = cv2.inRange(hsv_img1, lower1, upper1)
 
@@ -328,42 +327,34 @@ def Live_Feed(distance, block):
 	picam2.stop()
 	GPIO.cleanup()
 
-
+def redDrive():
+	setAngle(125)
+	time.sleep(0.5)
+	correctAngle(0)
+	time.sleep(0.5)
+	setAngle(35)
+	time.sleep(0.5)
+	correctAngle(0)
+	
+	
+def greenDrive():
+	setAngle(35)
+	time.sleep(0.5)
+	correctAngle(0)
+	time.sleep(0.5)
+	setAngle(125)
+	time.sleep(0.5)
+	correctAngle(0)
+	
 	
 def servoDrive(distance, block):
-	flag = False
 	while True:
-
-		quat_i, quat_j, quat_k, quat_real = bno.quaternion
-
-		heading = find_heading(quat_real, quat_i, quat_j, quat_k)
-		print("Heading using rotation vector:", heading)
-		correctAngle(0)
-		
-		print("Process 2: {}", distance)
-		while(1):
-			if(distance.value > 25 ):
-				flag = True
-				break
-			if(flag and block.value == 1):
-				setAngle(45)
-				time.sleep(1)
-				correctAngle(0)
-				time.sleep(0.5)
-				setAngle(135)
-				time.sleep(1)
-				correctAngle(0)
-				flag = False
-			elif(flag  and block.value == 0):
-				setAngle(135)
-				time.sleep(1)
-				correctAngle(0)
-				time.sleep(0.5)
-				setAngle(45)
-				time.sleep(1)
-				correctAngle(0)
-				flag = False
-
+		if(distance.value < 25 and block.value == 1):
+			greenDrive()
+		elif(distance.value < 25 and block.value == 0):
+			redDrive()
+		else:
+			correctAngle(0)	
 
 
 
