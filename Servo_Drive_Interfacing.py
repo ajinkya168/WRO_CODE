@@ -33,7 +33,10 @@ GPIO.setmode(GPIO.BCM)
 
 
 GPIO.setup(20, GPIO.OUT) # Connected to AIN2
-GPIO.setup(16, GPIO.OUT)
+GPIO.setup(12, GPIO.OUT)
+
+pwm12 = GPIO.PWM(12, 100)
+
 
 GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)#Button to GPIO23
 
@@ -329,15 +332,25 @@ def servoDrive(distance, block):
 	previous_state = 0
 	button_state = 0
 	button  = False
-	
+	correctAngle(0)	
+	pwm12.start(0)
+	power = 0
+	init_flag = False	
 	while True:
 		previous_state = button_state
 		button_state = GPIO.input(5)
 		if(previous_state == 1 and button_state == 0):
 			button = not(button)
+			init_flag = not(init_flag)
 			print("Button is pressed")
 		if(button):
-			GPIO.output(16, GPIO.HIGH) # Set PWMA
+			if(init_flag):
+				for power in np.arange(0,100, 0.01):
+					print("POWER : ", power)
+					pwm12.ChangeDutyCycle(power)# Set PWMA
+				init_flag = False
+			pwm12.ChangeDutyCycle(power)
+			print("FINAL POWEEEEEEEEEEEEEEEEEEEEEEERR ", power)	
 			GPIO.output(20, GPIO.HIGH) # Set AIN1
 			correctAngle(0)	
 			if(distance.value < 30 and block.value == 1):
@@ -347,13 +360,10 @@ def servoDrive(distance, block):
 				redDrive()
 			else:
 				correctAngle(0)
-				GPIO.output(16, GPIO.HIGH) # Set PWMA
-				GPIO.output(20, GPIO.HIGH) # Set AIN1
-				
-
 		else:
-		
-			GPIO.output(16, GPIO.LOW) # Set PWMA
+			if(init_flag):
+				init_flag = False
+			pwm12.ChangeDutyCycle(0)
 							
 
 
