@@ -225,18 +225,13 @@ def Live_Feed(distance, block):
 	picam2.preview_configuration.align()
 	picam2.configure("preview")
 	picam2.start()
-	previous_state = 0
-	button_state = 0
-	button  = False
-	
+
 	
 	cv2.namedWindow('Object Dist Measure ',cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('Object Dist Measure ', 900,800)
 
 	while True:
-		previous_state = button_state
-		button_state = GPIO.input(5)
-		
+
 
 
 		img= picam2.capture_array()
@@ -245,12 +240,12 @@ def Live_Feed(distance, block):
 		hsv_img1 = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
 
 		#predefined mask for green colour detection
-		lower = np.array([26, 75, 0])
-		upper = np.array([89, 255, 255])
+		lower = np.array([38, 41, 43])
+		upper = np.array([98, 255, 255])
 		mask = cv2.inRange(hsv_img, lower, upper)
 
-		lower1 = np.array([0, 70, 81])
-		upper1 = np.array([179, 255, 255])
+		lower1 = np.array([0, 52, 77])
+		upper1 = np.array([42, 211, 199])
 		mask1 = cv2.inRange(hsv_img1, lower1, upper1)
 
 
@@ -296,7 +291,7 @@ def Live_Feed(distance, block):
 
 					img = get_dist(rect1,img, "red")            
 					distance.value = dist2
-					block.value = 0		   
+					block.value = 2		   
 		cv2.imshow('Object Dist Measure ',img)
 
 
@@ -305,56 +300,63 @@ def Live_Feed(distance, block):
 			break
 		print(dist2)
 
-		if(previous_state == 1 and button_state == 0):
-			button = not(button)
-			print("Button is pressed")
-		if(button):
-			
-			if(dist1 < 25 or dist2 < 25):
-					print("inside")
-
-					# Set the motor speed
-					GPIO.output(16, GPIO.HIGH) # Set PWMA
-					GPIO.output(20, GPIO.HIGH) # Set AIN1
-			else: 
-					GPIO.output(16, GPIO.HIGH) # Set PWMA
-					GPIO.output(20, GPIO.HIGH) # Set AIN1
-		else:
-		
-			GPIO.output(16, GPIO.LOW) # Set PWMA
 
 	cv2.destroyAllWindows()
 	picam2.stop()
 	GPIO.cleanup()
 
 def redDrive():
-	setAngle(125)
+	correctAngle(30)
+	time.sleep(0.5)
+	correctAngle(-30)
 	time.sleep(0.5)
 	correctAngle(0)
-	time.sleep(0.5)
-	setAngle(35)
-	time.sleep(0.5)
-	correctAngle(0)
+
+	print("Red Detect")
 	
 	
 def greenDrive():
-	setAngle(35)
+
+	print("Green Detect")
+	correctAngle(-30)
 	time.sleep(0.5)
-	correctAngle(0)
+	correctAngle(30)
 	time.sleep(0.5)
-	setAngle(125)
-	time.sleep(0.5)
-	correctAngle(0)
+	correctAngle(0)	
 	
 	
 def servoDrive(distance, block):
+	previous_state = 0
+	button_state = 0
+	button  = False
+	
 	while True:
-		if(distance.value < 25 and block.value == 1):
-			greenDrive()
-		elif(distance.value < 25 and block.value == 0):
-			redDrive()
-		else:
+		previous_state = button_state
+		button_state = GPIO.input(5)
+		if(previous_state == 1 and button_state == 0):
+			button = not(button)
+			print("Button is pressed")
+		if(button):
+			GPIO.output(16, GPIO.HIGH) # Set PWMA
+			GPIO.output(20, GPIO.HIGH) # Set AIN1
 			correctAngle(0)	
+			if(distance.value < 30 and block.value == 1):
+				greenDrive()
+				
+			elif(distance.value < 30 and block.value == 2):
+				redDrive()
+			else:
+				correctAngle(0)
+				GPIO.output(16, GPIO.HIGH) # Set PWMA
+				GPIO.output(20, GPIO.HIGH) # Set AIN1
+				
+
+		else:
+		
+			GPIO.output(16, GPIO.LOW) # Set PWMA
+							
+
+
 
 
 
