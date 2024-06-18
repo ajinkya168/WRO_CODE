@@ -51,9 +51,8 @@ def correctAngle(setPoint_gyro):
 	
 	quat_i, quat_j, quat_k, quat_real = bno.quaternion
 	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
-	if(heading > 180):
+	if(heading > 180 and setPoint_gyro < 180):	
 		heading =  heading - 360
-
 	print("Heading :", heading)
 	error_gyro = heading - setPoint_gyro
 		
@@ -67,8 +66,8 @@ def correctAngle(setPoint_gyro):
 	dTerm = kd * (error_gyro - prevErrorGyro)
 	totalErrorGyro += error_gyro
 	iTerm = ki * totalErrorGyro
-	correction = pTerm + iTerm + dTerm;
-	
+	correction = pTerm + iTerm + dTerm
+
 	if (setPoint_flag == 0) :
 		if (correction > 30) :
 			correction = 30
@@ -77,15 +76,13 @@ def correctAngle(setPoint_gyro):
 
 	else:
 	 
-		if (correction > 35) :
+		if (correction > 35):
 			correction = 35
 		elif (correction < -35) :
 			correction = -35
 			
 	print("correction: ", correction)	
-
 	prevErrorGyro = error_gyro
-
 	setAngle(91 - correction)
 
 
@@ -118,20 +115,22 @@ def find_heading(dqw, dqx, dqy, dqz):
   
 
 if __name__ == '__main__':
-	setPoint = float(input())
+	try:
+		setPoint = float(input())
 
-	while True:
-		time.sleep(0.1)
+		while True:
+			time.sleep(0.1)
 
-		#gyro_x, gyro_y, gyro_z = bno.gyro # pylint:disable=no-member
-		#print("X: %0.6f Y: %0.6f Z: %0.6f rads/s" % (gyro_x, gyro_y, gyro_z))
-		#print("")
+			#gyro_x, gyro_y, gyro_z = bno.gyro # pylint:disable=no-member
+			#print("X: %0.6f Y: %0.6f Z: %0.6f rads/s" % (gyro_x, gyro_y, gyro_z))
+			#print("")
 
-		correctAngle(setPoint)
+			correctAngle(setPoint)
+	except KeyboardInterrupt:
+		GPIO.cleanup()			
 		
-	
 
-GPIO.cleanup()
+
 
 
 
