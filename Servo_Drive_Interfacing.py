@@ -44,6 +44,8 @@ GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)#Button to GPIO23
 servo = 23
 pwm = pigpio.pi()
 
+
+
 pwm.set_mode(servo, pigpio.OUTPUT)
 
 pwm.set_PWM_frequency(servo, 50)
@@ -415,6 +417,7 @@ def greenDrive():
 	
 	
 def servoDrive(distance, block):
+	#pi = pi.gpio()
 	previous_state = 0
 	button_state = 0
 	button  = False

@@ -22,7 +22,7 @@ distance_left = 0
 distance_right = 0
 
 def getTFminiData():
-  while True:
+  #while True:
   	
     #print("#############")
     time.sleep(0.05)	#change the value if needed
@@ -72,12 +72,16 @@ def getTFminiData():
     print("distance_Head : {}, distance_left: {}, distance_right: {}".format(distance_head, distance_left, distance_right)) 
 
 if __name__ == '__main__':
-  try:
-    getTFminiData()
-    print("distance_Head : {}, distance_left: {}, distance_right: {}".format(distance_head, distance_left, distance_right)) 
-  except:  
-    pi.bb_serial_read_close(RX_Head)
-    pi.bb_serial_read_close(RX_Left)
-    pi.bb_serial_read_close(RX_Right)
-    pi.stop()
- 
+	try:
+		while True:
+			time.sleep(1)
+			getTFminiData()
+			print("distance_Head : {}, distance_left: {}, distance_right: {}".format(distance_head, distance_left, distance_right)) 
+	except:  
+		pi.bb_serial_read_close(RX_Head)
+		pi.bb_serial_read_close(RX_Left)
+		pi.bb_serial_read_close(RX_Right)
+		pi.stop()
+
+	
+	 

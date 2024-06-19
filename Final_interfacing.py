@@ -1,4 +1,4 @@
-import numpy as np
+'''import numpy as np
 import RPi.GPIO as GPIO
 import cv2
 from picamera2 import Picamera2
@@ -195,4 +195,4 @@ while True:
 
 cv2.destroyAllWindows()
 picam2.stop()
-GPIO.cleanup()
+GPIO.cleanup()'''
