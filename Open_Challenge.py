@@ -8,7 +8,7 @@ import pigpio
 import board
 import busio
 from math import atan2, sqrt, pi
-
+import os
 from adafruit_bno08x import (
     BNO_REPORT_ACCELEROMETER,
     BNO_REPORT_GYROSCOPE,
@@ -16,8 +16,8 @@ from adafruit_bno08x import (
     BNO_REPORT_ROTATION_VECTOR,
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
-
-
+os.system("sudo pkill pigpiod")
+os.system("sudo pigpiod")
 i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
 bno = BNO08X_I2C(i2c)
 bno.enable_feature(BNO_REPORT_ACCELEROMETER)
@@ -25,19 +25,18 @@ bno.enable_feature(BNO_REPORT_GYROSCOPE)
 bno.enable_feature(BNO_REPORT_MAGNETOMETER)
 bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
-
 time.sleep(5)
-
+glob = 0
 
 GPIO.setmode(GPIO.BCM)
 
 GPIO.setup(20, GPIO.OUT) # Connected to AIN2
 GPIO.setup(12, GPIO.OUT)
 GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)#Button to GPIO23
-
-
-pwm = pigpio.pi()
 pwm12 = GPIO.PWM(12, 100)
+
+#pwm = pigpio.pi()
+
 
 #Parameters for servo
 servo = 23
@@ -47,7 +46,7 @@ RX_Left = 9
 RX_Right = 25
 #pi = pigpio.pi()
 
-pwm.set_mode(servo, pigpio.OUTPUT)
+'''pwm.set_mode(servo, pigpio.OUTPUT)
 
 pwm.set_PWM_frequency(servo, 50)
 
@@ -56,7 +55,7 @@ pwm.set_mode(RX_Left, pigpio.INPUT)
 pwm.set_mode(RX_Right, pigpio.INPUT)
 pwm.bb_serial_read_open(RX_Head, 115200)
 pwm.bb_serial_read_open(RX_Left, 115200)
-pwm.bb_serial_read_open(RX_Right, 115200)
+pwm.bb_serial_read_open(RX_Right, 115200)'''
 #Define object specific variables for green  
 dist = 15
 focal = 1120
@@ -91,7 +90,7 @@ def getTFminiData():
 
 	
 	#while True:
-		time.sleep(0.05)	#change the value if needed
+		time.sleep(0.01)	#change the value if needed
 		#(count, recv) = pi.bb_serial_read(RX)
 		(count_head, recv_head) = pwm.bb_serial_read(RX_Head)
 		(count_left, recv_left) = pwm.bb_serial_read(RX_Left)
@@ -136,12 +135,12 @@ def getTFminiData():
 		        strength_right = recv_right[i+4] + recv_right[i+5] * 256
 		        #print("distance_right : ", distance_right)
 
-		print("distance_Head : {}, distance_left: {}, distance_right: {}".format(distance_head, distance_left, distance_right)) 
+
 
 
 	
 def correctAngle(setPoint_gyro):
-
+	global glob
 	error_gyro = 0
 	prevErrorGyro = 0
 	totalErrorGyro = 0
@@ -151,14 +150,15 @@ def correctAngle(setPoint_gyro):
 	
 	quat_i, quat_j, quat_k, quat_real = bno.quaternion
 	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
+	glob = heading
 	if(heading > 180):
 		heading =  heading - 360
 
-	print("Heading :", heading)
+	#print("Heading :", heading)
 	error_gyro = heading - setPoint_gyro
-		
 
-	print("Error : ", error_gyro)
+
+	#print("Error : ", error_gyro)
 	pTerm = 0
 	dTerm = 0
 	iTerm = 0
@@ -168,6 +168,8 @@ def correctAngle(setPoint_gyro):
 	totalErrorGyro += error_gyro
 	iTerm = ki * totalErrorGyro
 	correction = pTerm + iTerm + dTerm;
+	#print("correction 1: ", correction)
+				
 	if(heading > 180 and setPoint_gyro < 180):	
 		heading =  heading - 360	
 	if (setPoint_flag == 0) :
@@ -182,12 +184,13 @@ def correctAngle(setPoint_gyro):
 			correction = 35
 		elif (correction < -35) :
 			correction = -35
-			
-	print("correction: ", correction)	
 
+	#print("correction: ", e)	
+	
 	prevErrorGyro = error_gyro
 
 	setAngle(91 - correction)
+
 	
 
 def find_heading(dqw, dqx, dqy, dqz):
@@ -479,72 +482,120 @@ def greenDrive():
 	correctAngle(30)
 	time.sleep(0.8)
 	correctAngle(0)	
+
+
 	
-	
-def servoDrive(distance, block):
+def servoDrive(distance, block, pwm):
 	print("ServoProcess started")
+	global heading
+	pwm.set_mode(servo, pigpio.OUTPUT)
+
+	pwm.set_PWM_frequency(servo, 50)
+
+	pwm.set_mode(RX_Head, pigpio.INPUT)
+	pwm.set_mode(RX_Left, pigpio.INPUT)
+	pwm.set_mode(RX_Right, pigpio.INPUT)
+	pwm.bb_serial_read_open(RX_Head, 115200)
+	pwm.bb_serial_read_open(RX_Left, 115200)
+	pwm.bb_serial_read_open(RX_Right, 115200)
+	
+	
 	previous_state = 0
 	button_state = 0
 	button  = False
 	correctAngle(0)	
 	pwm12.start(0)
 	power = 0
-	init_flag = False	
+	turn_flag = False
+	heading_angle = 0
+	target_angle = 0
+	trigger = False
+
 	while True:
+		init_flag = False
+		
+		correctAngle(heading_angle)
+		time.sleep(0.1)
 		getTFminiData()
+
 		previous_state = button_state
 		button_state = GPIO.input(5)
+		print("Trigger: ",trigger)
+		
 		if(previous_state == 1 and button_state == 0):
 			button = not(button)
 			init_flag = True
+
+
 			print("Button is pressed")
 		if(button):
+		
+
+			print(trigger)
+			
+				
+
 			if(init_flag):
 				for power in np.arange(0,100, 0.01):
-					print("POWER : ", power)
 					pwm12.ChangeDutyCycle(power)# Set PWMA
 				init_flag = False
 			pwm12.ChangeDutyCycle(power)
-			print("FINAL POWEEEEEEEEEEEEEEEEEEEEEEERR ", power)	
+
 			GPIO.output(20, GPIO.HIGH) # Set AIN1
-			correctAngle(0)	
-			if(distance.value < 45 and block.value == 1):
-				greenDrive()
+
+			if(distance_right > 25 and not trigger):
+
+					if(glob >= 0 and glob <=5):
+						heading_angle = 90
+						correctAngle(heading_angle)
+						
+
+					elif(glob >= 88 and glob <= 95):
+						heading_angle = 180
+						correctAngle(heading_angle)
+						
+					elif(glob >= 171 and glob <= 182):
+						heading_angle = 270
+						correctAngle(heading_angle)
+						
+					elif(glob >= 270 and glob <= 280):
+						heading_angle = 0
+						correctAngle(heading_angle)
+					trigger = True
+
+		
+			if(distance_right < 25):
+				trigger = False
+				correctAngle(heading_angle)
 				
-			elif(distance.value < 45 and block.value == 2):
-				redDrive()
-			else:
-				correctAngle(0)
+			print("	distance_head : {}, distance_left: {}, distance_right: {}, Theta: {}, IMU : {}".format(distance_head, distance_left, distance_right, heading_angle, glob)) 
 		else:
 			if(init_flag):
 				init_flag = False
 			pwm12.ChangeDutyCycle(0)
-							
-
+			correctAngle(0)								
 
 
 
 
 
 if __name__ == '__main__':
-	try:
-	
 
+	try:
+		pwm = pigpio.pi()
 		distance = multiprocessing.Value('f', 0.0)
 		block = multiprocessing.Value('i', 0)
 
-		I = multiprocessing.Process(target = Live_Feed, args = (distance, block, ))
-		S = multiprocessing.Process(target = servoDrive, args = (distance, block, ))
 
-		I.start()
+		S = multiprocessing.Process(target = servoDrive, args = (distance, block, pwm ))
+
+
 		S.start()
-		
-	except KeyboardInterrupt:
-		GPIO.cleanup()
 
-GPIO.cleanup()
-pi.bb_serial_read_close(RX_Head)
-pi.bb_serial_read_close(RX_Left)
-pi.bb_serial_read_close(RX_Right)
-pi.stop()		
+	except:
+		pwm.bb_serial_read_close(RX_Head)
+		pwm.bb_serial_read_close(RX_Left)
+		pwm.bb_serial_read_close(RX_Right)
+		pwm.stop()
+		GPIO.cleanup()			
 
