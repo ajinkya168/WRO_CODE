@@ -72,9 +72,9 @@ totalErrorGyro = 0
 correcion = 0
 totalError = 0
 prevError = 0
-kp = 1
-ki = 0.5
-kd = 0
+kp = 0.6
+ki = 0.1
+kd = 0.5
 setPoint_flag =  0
 
 
@@ -83,6 +83,7 @@ setPoint_flag =  0
 distance_head = 0
 distance_left = 0
 distance_right = 0
+
 
 def getTFminiData():
 
@@ -510,7 +511,7 @@ def servoDrive(distance, block, pwm):
 	heading_angle = 0
 	target_angle = 0
 	trigger = False
-
+	counter = 0
 	while True:
 		init_flag = False
 		
@@ -529,11 +530,14 @@ def servoDrive(distance, block, pwm):
 
 			print("Button is pressed")
 		if(button):
-		
-
+				
+			if(counter == -1):
+				global start_time
+				if(time.time() - start_time > 1.5):
+					power = 0
 			print(trigger)
 			
-				
+			correctAngle(heading_angle)	
 
 			if(init_flag):
 				for power in np.arange(0,100, 0.01):
@@ -542,38 +546,51 @@ def servoDrive(distance, block, pwm):
 			pwm12.ChangeDutyCycle(power)
 
 			GPIO.output(20, GPIO.HIGH) # Set AIN1
+			if(counter == 12 ):
+			
+				if(distance_head < 175 and distance_right < 85 and not trigger):
+					start_time = time.time()
+					counter = -1
 
-			if(distance_right > 25 and not trigger):
-
-					if((glob >= 0 and glob <=5) or (glob >= 353 and glob <= 360)):
+			if(distance_right > 100 and not trigger and distance_head < 75):
+					#time.sleep(0.5)
+					
+					if((glob >= 0 and glob <=15) or (glob >= 343 and glob <= 370)):
 						heading_angle = 90
-						correctAngle(heading_angle)
+						counter = counter + 1
+						#correctAngle(heading_angle)
 						
 
-					elif(glob >= 88 and glob <= 95):
+					elif(glob >= 78 and glob <= 105):
 						heading_angle = 180
-						correctAngle(heading_angle)
+						counter = counter + 1
+						#correctAngle(heading_angle)
 						
-					elif(glob >= 175 and glob <= 182):
+					elif(glob >= 165 and glob <= 190):
 						heading_angle = 270
-						correctAngle(heading_angle)
+						counter = counter + 1
+						#correctAngle(heading_angle)
 						
-					elif(glob >= 265 and glob <= 273):
+					elif(glob >= 255 and glob <= 283):
 						heading_angle = 0
-						correctAngle(heading_angle)
+						counter = counter + 1
+						#correctAngle(heading_angle)
 					trigger = True
+					
 
 		
-			if(distance_right < 25):
+			if(distance_right < 85 and distance_head > 75):
 				trigger = False
-				correctAngle(heading_angle)
 				
-			print("	distance_head : {}, distance_left: {}, distance_right: {}, Theta: {}, IMU : {}".format(distance_head, distance_left, distance_right, heading_angle, glob)) 
+				
+			print("	counter : {}, distance_head : {}, distance_left: {}, distance_right: {}, Theta: {}, IMU : {}".format(counter, distance_head, distance_left, distance_right, heading_angle, glob)) 
 		else:
 			if(init_flag):
 				init_flag = False
 			pwm12.ChangeDutyCycle(0)
-			correctAngle(0)								
+			heading_angle = 0
+			counter = 0
+			correctAngle(heading_angle)								
 
 
 

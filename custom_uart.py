@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*
+
+
+
+import os
+
+os.system("sudo pkill pigpiod")
+os.system("sudo pigpiod")
 import pigpio
 import time
-
-'''RX = 16
-
-pi = pigpio.pi()
-pi.set_mode(RX, pigpio.INPUT)
-pi.bb_serial_read_open(RX, 115200) '''
 RX_Head = 16
 RX_Left = 9
 RX_Right = 25
@@ -74,7 +75,7 @@ def getTFminiData():
 if __name__ == '__main__':
 	try:
 		while True:
-			time.sleep(1)
+			#time.sleep(1)
 			getTFminiData()
 			print("distance_Head : {}, distance_left: {}, distance_right: {}".format(distance_head, distance_left, distance_right)) 
 	except:  
