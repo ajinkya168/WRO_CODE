@@ -151,7 +151,7 @@ def correctAngle(setPoint_gyro):
 	quat_i, quat_j, quat_k, quat_real = bno.quaternion
 	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
 	glob = heading
-	if(heading > 180):
+	if(heading > 180 and setPoint_gyro < 180):	
 		heading =  heading - 360
 
 	#print("Heading :", heading)
@@ -545,7 +545,7 @@ def servoDrive(distance, block, pwm):
 
 			if(distance_right > 25 and not trigger):
 
-					if(glob >= 0 and glob <=5):
+					if((glob >= 0 and glob <=5) or (glob >= 353 and glob <= 360)):
 						heading_angle = 90
 						correctAngle(heading_angle)
 						
@@ -554,11 +554,11 @@ def servoDrive(distance, block, pwm):
 						heading_angle = 180
 						correctAngle(heading_angle)
 						
-					elif(glob >= 171 and glob <= 182):
+					elif(glob >= 175 and glob <= 182):
 						heading_angle = 270
 						correctAngle(heading_angle)
 						
-					elif(glob >= 270 and glob <= 280):
+					elif(glob >= 265 and glob <= 273):
 						heading_angle = 0
 						correctAngle(heading_angle)
 					trigger = True
