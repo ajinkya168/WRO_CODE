@@ -328,15 +328,15 @@ def Live_Feed(distance, block):
 
 
 
-		lower = np.array([49, 118, 69])
-		upper = np.array([71, 172, 119])
+		lower = np.array([40, 88, 38])
+		upper = np.array([59, 163, 122])
 		mask = cv2.inRange(hsv_img, lower, upper)
 		mask = cv2.dilate(mask, kernel, iterations=3)
 		mask = cv2.erode(mask, kernel, iterations=3)
 	
 
-		lower1 = np.array([167, 172, 110])
-		upper1 = np.array([178, 205, 133])
+		lower1 = np.array([155, 99, 56])
+		upper1 = np.array([179, 190, 149])
 		mask1 = cv2.inRange(hsv_img1, lower1, upper1)
 		mask1 = cv2.dilate(mask1, kernel, iterations=3)
 		mask1 = cv2.erode(mask1, kernel, iterations=3)
@@ -465,24 +465,25 @@ def Live_Feed(distance, block):
 	GPIO.cleanup()
 
 
-def redDrive():
-	correctAngle(30)
-	time.sleep(0.5)
-	correctAngle(-30)
-	time.sleep(0.8)
-	correctAngle(0)
+def redDrive(heading_angle):
+	correctAngle(heading_angle + 30)
+	time.sleep(1)
+	correctAngle(heading_angle -30)
+	time.sleep(1)
+
 
 	print("Red Detect")
 	
 	
-def greenDrive():
+def greenDrive(heading_angle):
 
 	print("Green Detect")
-	correctAngle(-30)
-	time.sleep(0.5)
-	correctAngle(30)
-	time.sleep(0.8)
-	correctAngle(0)	
+	correctAngle(heading_angle - 30)
+	time.sleep(1)
+	correctAngle(heading_angle + 30)
+	time.sleep(1)
+
+
 
 
 	
@@ -528,22 +529,36 @@ def servoDrive(distance, block, pwm):
 			init_flag = True
 
 
-			print("Button is pressed")
+			
 		if(button):
+			print("Button is pressed")
+			if(init_flag):
+				for power in np.arange(0,70, 0.01):
+					pwm12.ChangeDutyCycle(power)# Set PWMA
+				init_flag = False
+			pwm12.ChangeDutyCycle(power)
+
+			if(distance.value < 15 and block.value == 1):
+				pwm12.ChangeDutyCycle(0)
+				time.sleep(2)
+				pwm12.ChangeDutyCycle(power)
+				greenDrive(heading_angle)
+				
+			elif(distance.value < 15 and block.value == 2):
+				pwm12.ChangeDutyCycle(0)
+				time.sleep(2)
+				pwm12.ChangeDutyCycle(power)
+				redDrive(heading_angle)
 				
 			if(counter == -1):
 				global start_time
-				if(time.time() - start_time > 1.1):
+				if(time.time() - start_time > 1.5):
 					power = 0
 			print(trigger)
 			
 			correctAngle(heading_angle)	
 
-			if(init_flag):
-				for power in np.arange(0,100, 0.01):
-					pwm12.ChangeDutyCycle(power)# Set PWMA
-				init_flag = False
-			pwm12.ChangeDutyCycle(power)
+
 
 			GPIO.output(20, GPIO.HIGH) # Set AIN1
 			if(counter == 12 ):
@@ -581,7 +596,9 @@ def servoDrive(distance, block, pwm):
 		
 			if(distance_right < 85 and distance_head > 75):
 				trigger = False
-				
+
+			else:
+				correctAngle(heading_angle)				
 				
 			print("	counter : {}, distance_head : {}, distance_left: {}, distance_right: {}, Theta: {}, IMU : {}".format(counter, distance_head, distance_left, distance_right, heading_angle, glob)) 
 		else:
@@ -603,10 +620,10 @@ if __name__ == '__main__':
 		distance = multiprocessing.Value('f', 0.0)
 		block = multiprocessing.Value('i', 0)
 
-
+		P = multiprocessing.Process(target = Live_Feed, args = (distance, block, ))
 		S = multiprocessing.Process(target = servoDrive, args = (distance, block, pwm ))
 
-
+		P.start()
 		S.start()
 
 	except:

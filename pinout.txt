@@ -1,0 +1,29 @@
+BNO085
+
+SDL - GPIO2
+SCL - GPIO3
+
+
+TF mini sharp lidar
+
+Rx green wire
+head - 16
+left - 9
+right - 25
+
+Motor Drive
+
+Direction - 20
+pwm - 12
+
+Button - 5
+kp = 0.6
+ki = 0.1
+kd = 0.5
+
+dist = 15
+focal = 1120
+pixels = 30
+width = 4
+
+Servo - 23
