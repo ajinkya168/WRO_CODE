@@ -18,6 +18,7 @@ def encoder_a_rise():
 
 
 def encoder_counter():
+	global counter
 	if encoder_a.value:
 		counter += 1
 	else:
@@ -33,8 +34,8 @@ def encoder_counter():
         counter += 1'''
 
 # Set up the encoder pins to trigger on rising edges
-encoder_a.when_activated = ecndoer_count
-encoder_b.when_activated = encoder_b_rise
+encoder_a.when_activated = encoder_counter
+#encoder_b.when_activated = encoder_b_rise
 
 print("Encoder counter started. Press Ctrl+C to exit.")
 
