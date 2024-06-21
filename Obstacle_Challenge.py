@@ -76,9 +76,9 @@ kp = 0.6
 ki = 0.1
 kd = 0.5
 
-kp_b = 0.05
+kp_b = 0.03
 ki_b = 0
-kd_b = 0
+kd_b = 0.003
 
 setPoint_flag =  0
 
@@ -109,7 +109,7 @@ def Centre(frame):
 	if(centroid_y < 360):
 		distance_c = 0 - distance_c
 	#print("centroid y =", centroid_y)
-	#print("distance_c :", distance_c)
+	print("distance_y :", centroid_y)
 	# Calculate the center coordinates
 	center_x = width // 2
 	center_y = height // 2
@@ -147,7 +147,7 @@ def Centre(frame):
 	for edge in edges:
 		thickness = 1
 		finish = 0
-		if(distance_c >= -50 and distance_c <= 50 ):
+		if((distance_c >= -50 and distance_c <= 50 ) or centroid_y > 360):
 			thickness = 5
 			finish = 1 
 				
@@ -241,7 +241,7 @@ def correctBlock(distance_val, centroid_val):
 	iTerm = 0
 
 	pTerm = kp_b * error
-	dTerm = kd_b * (error - prevError)
+	dTerm = -kd_b * (error - prevError)
 	totalError += error
 	iTerm = ki_b * totalError
 	correction = pTerm + iTerm + dTerm;
@@ -800,6 +800,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 			counter = 0
 			correctAngle(heading_angle)								
 			color_b.Value = False
+			stop_b.value = False
 
 
 
