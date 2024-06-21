@@ -96,7 +96,7 @@ distance_y = 0
 distance_c = 0
 centroid_x = 0
 centroid_y = 0
-block_identified = False
+finish = 0
 def Centre(frame):
 	height, width, _ = frame.shape
 	global center_x
@@ -104,6 +104,8 @@ def Centre(frame):
 	global centroid_y 
 	global power
 	global distance_c
+	global finish
+	block_identified = False
 	if(centroid_y < 360):
 		distance_c = 0 - distance_c
 	#print("centroid y =", centroid_y)
@@ -144,9 +146,11 @@ def Centre(frame):
 	# Draw the cube
 	for edge in edges:
 		thickness = 1
-		if(distance_c >= -50 and distance_c <= 5 ):
+		finish = 0
+		if(distance_c >= -50 and distance_c <= 50 ):
 			thickness = 5
-			block_identified = True	
+			finish = 1 
+				
 		cv2.line(frame, tuple(vertices[edge[0]]), tuple(vertices[edge[1]]), (0, 255, 0), thickness)
 		
 	return frame
@@ -242,7 +246,7 @@ def correctBlock(distance_val, centroid_val):
 	iTerm = ki_b * totalError
 	correction = pTerm + iTerm + dTerm;
 	#print("correction : ", correction)
-	print("Distance : {}, Centorid: {}, correction : {}".format(distance_val, centroid_val, correction))			
+	#print("Distance : {}, Centorid: {}, correction : {}".format(distance_val, centroid_val, correction))			
 	#if(heading > 180 and setPoint < 180):	
 		#heading =  heading - 360	
 	if (setPoint_flag == 0) :
@@ -264,64 +268,7 @@ def correctBlock(distance_val, centroid_val):
 
 	setAngle(91 - correction)
 
-'''def correctBlock():
-	#print("INSIDE CORRECT")
-	global distance_x
-	global distance_c
-	global centroid_x
-	global centroid_y
-	error = 0
-	prevError = 0
-	totalError = 0
-	correction = 0
-	setPoint_gyro = 0
 
-	#quat_i, quat_j, quat_k, quat_real = bno.quaternion
-	#heading = find_heading(quat_real, quat_i, quat_j, quat_k)
-	#glob = heading
-
-	if(centroid_x  < 640 ):	
-		#print("INSIDE LOOP")
-		distance_c =  distance_c - 0
-	else:
-		distance_c =  0 - distance_c
-		#distance_y = 0 - distance_y
-	#print("Distance :", distance_val)
-	error = distance_c - 0
-
-
-	#print("Error : ", error)
-	pTerm = 0
-	dTerm = 0
-	iTerm = 0
-
-	pTerm = kp_b * error
-	dTerm = kd_b * (error - prevError)
-	totalError += error
-	iTerm = ki_b * totalError
-	correction = pTerm + iTerm + dTerm;
-	#print("correction : ", correction)
-	print("Distance : {}, Centorid: {}, correction : {}".format(distance_c, centroid_x, correction))			
-	#if(heading > 180 and setPoint < 180):	
-		#heading =  heading - 360	
-	if (setPoint_flag == 0) :
-		if (correction > 5) :
-			correction = 55
-		elif (correction < -55): 
-			correction = -55
-
-	else:
-	 
-		if (correction > 55) :
-			correction = 55
-		elif (correction < -55) :
-			correction = -55
-
-	#print("correction:	 ", e)	
-	
-	prevError = error
-
-	setAngle(91 - correction)'''
 	
 def correctAngle(setPoint_gyro):
 	global glob
@@ -481,12 +428,13 @@ def resize_final_img(x,y,*argv):
     return images
 
 #loop to capture video frames
-def Live_Feed(distance, block, distance_center, centroid_x_val):
+def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b):
 	global distance_x
 	global distance_y
 	global distance_c
 	global centroid_x
 	global centroid_y
+	global finish
 	print("Image Process started")
 	picam2 = Picamera2()
 	picam2.preview_configuration.main.size = (1280,720)
@@ -497,16 +445,22 @@ def Live_Feed(distance, block, distance_center, centroid_x_val):
 
 	green_present = False
 	red_present = False
-	
+			#color_b.value = False
 	cv2.namedWindow('Object Dist Measure ',cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('Object Dist Measure ', 1280,720)
 
 	while True:
 
-		
 
+		
 		img= picam2.capture_array()
 		img = Centre(img)
+		#print("STOP_B :", finish)
+		if(finish):
+			stop_b.value = True
+		else:
+			stop_b.value = False
+		#print("STOP_B :", stop_b.value)
 		hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
 		hsv_img1 = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
 
@@ -547,22 +501,29 @@ def Live_Feed(distance, block, distance_center, centroid_x_val):
 		if(len(cont) == 0):
 			#print("Cant find contour for green....")
 			green_present = False
+			#color_b.value = False
+			
 		else:
 	
 			max_cnt = max(cont, key = cv2.contourArea)
 			green_present = True
-
+			#color_b.value = True
 			
 		if(len(cont1) == 0):
 			#print("Cant find contour for red....")
 			red_present = False
+			#color_b.value = False
 		else:
 	
 			max_cnt1 = max(cont1, key = cv2.contourArea)
 			red_present = True
-			
+			#color_b.value = True
 		#max_cnt1 = max(cont1, key = cv2.contourArea)
+		if(not red_present and not green_present):
+			color_b.value = False	
+
 		if(red_present and green_present):
+			color_b.value = True
 			if(cv2.contourArea(max_cnt) > cv2.contourArea(max_cnt1)):
 				if (cv2.contourArea(max_cnt)>100 and cv2.contourArea(max_cnt)<306000):
 
@@ -602,12 +563,13 @@ def Live_Feed(distance, block, distance_center, centroid_x_val):
 					distance_x = centroid_x - center_x
 					distance_y = centroid_y - center_y
 					distance_c = sqrt(distance_x ** 2 + distance_y ** 2)
-					distance_center.value = distance_c
+					distance_center.value = distance_x
 					#correctBlock()
 					img = get_dist(rect1,img, "red")            
 					distance.value = dist2
 					block.value = 2
 		elif(red_present):
+				color_b.value = 1
 				if (cv2.contourArea(max_cnt1)>100 and cv2.contourArea(max_cnt1)<306000):
 
 					#Draw a rectange on the contour
@@ -628,6 +590,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val):
 					distance.value = dist2
 					block.value = 2			
 		elif(green_present):
+				color_b.value = True
 				if (cv2.contourArea(max_cnt)>100 and cv2.contourArea(max_cnt)<306000):
 
 					#Draw a rectange on the contour
@@ -675,7 +638,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val):
 					img = get_dist(rect1,img, "red")            
 					distance.value = dist2
 					block.value = 2	"""
-						   
+			   
 		cv2.imshow('Object Dist Measure ',img)
 
 		if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -710,7 +673,7 @@ def greenDrive(heading_angle):
 
 
 	
-def servoDrive(distance, block, pwm, distance_center, centroid_x_val):
+def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, stop_b):
 	print("ServoProcess started")
 	global heading
 	pwm.set_mode(servo, pigpio.OUTPUT)
@@ -738,10 +701,11 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val):
 	counter = 0
 	while True:
 		init_flag = False
-
+		#print("Color : ", color_b.value)
 		#correctAngle(heading_angle)
 		time.sleep(0.1)
 		getTFminiData()
+		#print("STOP_B :", stop_b.value)
 
 		previous_state = button_state
 		button_state = GPIO.input(5)
@@ -754,10 +718,15 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val):
 
 			
 		if(button):
-			correctBlock(distance_center.value, centroid_x_val.value)
-			print("BLOCK IDENTIFIED :", block_identified)
-			if(block_identified):
-				pwm12.ChangeDutyCycle(0)# Set PWMA
+			if(color_b.value):
+				correctBlock(distance_center.value, centroid_x_val.value)
+			else:
+				correctAngle(heading_angle)
+
+			#correctBlock(distance_center.value, centroid_x_val.value)
+			print("BLOCK IDENTIFIED :", stop_b.value)
+			if(stop_b.value):
+				power = 0# Set PWMA
 			#print("Button is pressed")
 			if(init_flag):
 				for power in np.arange(0,70, 0.01):
@@ -776,9 +745,9 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val):
 				'''
 			if(counter == -1):
 				global start_time
-				if(time.time() - start_time > 1.5):
+				if(time.time() - start_time > 1.1):
 					power = 0
-			print(trigger)
+			#print(trigger)
 			
 			#correctAngle(heading_angle)	
 
@@ -820,10 +789,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val):
 		
 			if(distance_right < 85 and distance_head > 75):
 				trigger = False
-
-			else:
-				pass
-				#correctAngle(heading_angle)				
+				
 				
 			#print("	counter : {}, distance_head : {}, distance_left: {}, distance_right: {}, Theta: {}, IMU : {}".format(counter, distance_head, distance_left, distance_right, heading_angle, glob)) 
 		else:
@@ -833,7 +799,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val):
 			heading_angle = 0
 			counter = 0
 			correctAngle(heading_angle)								
-
+			color_b.Value = False
 
 
 
@@ -846,8 +812,10 @@ if __name__ == '__main__':
 		block = multiprocessing.Value('i', 0)
 		distance_center = multiprocessing.Value('f', 0.0)
 		centroid_x_val = multiprocessing.Value('f', 0.0)
-		P = multiprocessing.Process(target = Live_Feed, args = (distance, block, distance_center, centroid_x_val, ))
-		S = multiprocessing.Process(target = servoDrive, args = (distance, block, pwm, distance_center, centroid_x_val,))
+		color_b = multiprocessing.Value('b', False)
+		stop_b = multiprocessing.Value('b', False)
+		P = multiprocessing.Process(target = Live_Feed, args = (distance, block, distance_center, centroid_x_val, color_b, stop_b ))
+		S = multiprocessing.Process(target = servoDrive, args = (distance, block, pwm, distance_center, centroid_x_val, color_b, stop_b))
 
 		P.start()
 		S.start()
