@@ -165,7 +165,7 @@ def Centre(frame):
 		thickness = 1
 
 		finish = 0
-		if((distance_c >= -50 and distance_c <= 50 ) or centroid_y > 600):
+		if((distance_c >= -80 and distance_c <= 80 ) or centroid_y > 700):
 			thickness = 5
 			finish = 1 
 			
@@ -781,7 +781,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 			
 		if(button):
 
-				
+			correctAngle(heading_angle)# Set PWMA	
 			#correctBlock(distance_center.value, centroid_x_val.value)
 			#print("BLOCK IDENTIFIED :", stop_b.value)
 			#print("Red : {}. Green : {}".format(red_detect, green_detect))
@@ -820,20 +820,11 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 				init_flag = False
 			pwm12.ChangeDutyCycle(power)
 
-			'''if(distance.value < 15 and block.value == 1):
-
-
-				greenDrive(heading_angle)
-				
-			elif(distance.value < 15 and block.value == 2):
-
-				redDrive(heading_angle)
-				'''
 			if(counter == -1):
 				global start_time
 				if(time.time() - start_time > 1.1):
 					power = 0
-			#print(trigger)
+			print("TRIGEEEER : {}, counter : {} , heading: {}".format(trigger, counter, heading_angle))
 			
 			#correctAngle(heading_angle)	
 
@@ -846,33 +837,41 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 					start_time = time.time()
 					counter = -1
 
-			if(distance_right > 100 and not trigger and distance_head < 75):
+			if(distance_right > 100 and not trigger and distance_head < 100):
 					#time.sleep(0.5)
 					
 					if((glob >= 0 and glob <=15) or (glob >= 343 and glob <= 370)):
 						heading_angle = 90
 						counter = counter + 1
+						'''red_b.value = False
+						green_b.value = False'''
 						#correctAngle(heading_angle)
 						
 
 					elif(glob >= 78 and glob <= 105):
 						heading_angle = 180
 						counter = counter + 1
+						'''red_b.value = False
+						green_b.value = False'''
 						#correctAngle(heading_angle)
 						
 					elif(glob >= 165 and glob <= 190):
 						heading_angle = 270
 						counter = counter + 1
+						'''red_b.value = False
+						green_b.value = False'''
 						#correctAngle(heading_angle)
 						
 					elif(glob >= 255 and glob <= 283):
 						heading_angle = 0
 						counter = counter + 1
+						'''red_b.value = False
+						green_b.value = False'''
 						#correctAngle(heading_angle)
 					trigger = True
 					
 
-		
+			
 			if(distance_right < 85 and distance_head > 75):
 				trigger = False
 				
