@@ -89,7 +89,8 @@ distance_head = 0
 distance_left = 0
 distance_right = 0
 
-center_x = 0
+center_x_green = 0
+cneter_x_red = 0
 center_y = 0
 distance_x = 0
 distance_y = 0
@@ -102,7 +103,8 @@ red_detect = 0
 green_detect = 0
 def Centre(frame):
 	height, width, _ = frame.shape
-	global center_x
+	global center_x_green
+	global center_x_red
 	global center_y
 	global centroid_y 
 	global power
@@ -163,7 +165,7 @@ def Centre(frame):
 		thickness = 1
 
 		finish = 0
-		if(centroid_y > 600):
+		if((distance_c >= -50 and distance_c <= 50 ) or centroid_y > 600):
 			thickness = 5
 			finish = 1 
 			
@@ -468,6 +470,8 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 	global centroid_x
 	global centroid_y
 	global finish
+	global center_x_red
+	global center_x_green
 	print("Image Process started")
 	picam2 = Picamera2()
 	picam2.preview_configuration.main.size = (1280,720)
@@ -559,8 +563,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 
 		if(red_present and green_present):
 			color_b.value = True
-			red_b.value = False
-			green_b.value = False
+									#green_b.value = True
 			if(cv2.contourArea(max_cnt) > cv2.contourArea(max_cnt1)):
 				green_b.value = True	    
 				if (cv2.contourArea(max_cnt)>100 and cv2.contourArea(max_cnt)<306000):
@@ -573,8 +576,11 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					(x, y, w, h) = cv2.boundingRect(box)
 					centroid_x = x + w // 2
 					centroid_y = y + h // 2
+
+						#color_b.value = True
+
 					centroid_x_val.value = centroid_x
-					distance_x = centroid_x - center_x
+					distance_x = centroid_x - center_x_green
 					distance_y = centroid_y - center_y
 					distance_c = sqrt(distance_x ** 2 + distance_y ** 2)
 					distance_center.value = distance_c
@@ -600,7 +606,10 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					centroid_x = x + w // 2
 					centroid_x_val.value = centroid_x
 					centroid_y = y + h // 2
-					distance_x = centroid_x - center_x
+					#if(centroid_y > 50):
+						#color_b.value = True
+						#red_b.value = True
+					distance_x = centroid_x - center_x_red
 					distance_y = centroid_y - center_y
 					distance_c = sqrt(distance_x ** 2 + distance_y ** 2)
 					distance_center.value = distance_x
@@ -610,7 +619,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					block.value = 2
 
 		elif(red_present):
-				color_b.value = 1
+				color_b.value = True
 				red_b.value = True
 				if (cv2.contourArea(max_cnt1)>100 and cv2.contourArea(max_cnt1)<306000):
 
@@ -623,7 +632,10 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					centroid_x = x + w // 2
 					centroid_x_val.value = centroid_x	
 					centroid_y = y + h // 2
-					distance_x = centroid_x - center_x
+					#if(centroid_y > 50):
+						#color_b.value = True
+						#red_b.value = True
+					distance_x = centroid_x - center_x_red
 					distance_y = centroid_y - center_y
 					distance_c = sqrt(distance_x ** 2 + distance_y ** 2)
 					distance_center.value = distance_c
@@ -632,8 +644,10 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					distance.value = dist2
 					block.value = 2			
 		elif(green_present):
-				green_b.value = True
 				color_b.value = True
+
+				green_b.value = True
+
 				if (cv2.contourArea(max_cnt)>100 and cv2.contourArea(max_cnt)<306000):
 
 					#Draw a rectange on the contour
@@ -644,8 +658,11 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					(x, y, w, h) = cv2.boundingRect(box)
 					centroid_x = x + w // 2
 					centroid_y = y + h // 2
+					#if(centroid_y > 50):
+						#color_b.value = True
+						#green_b.value = True
 					centroid_x_val.value = centroid_x	
-					distance_x = centroid_x - center_x
+					distance_x = centroid_x - center_x_green
 					distance_y = centroid_y - center_y
 					distance_c = sqrt(distance_x ** 2 + distance_y ** 2)
 					distance_center.value = distance_c
@@ -763,23 +780,39 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 
 			
 		if(button):
-			if(color_b.value):
-				if(green_b.value):
-					green_detect = 1
-					red_detect = 0
-				elif(red_b.value):
-					red_detect = 1
-					green_detect = 0
-				correctBlock(distance_center.value, centroid_x_val.value)
-			else:
-				correctAngle(heading_angle)
-				green_detect = 0
-				red_detect = 0
+
+				
 			#correctBlock(distance_center.value, centroid_x_val.value)
 			#print("BLOCK IDENTIFIED :", stop_b.value)
 			#print("Red : {}. Green : {}".format(red_detect, green_detect))
 			if(stop_b.value):
 				correctAngle(heading_angle)# Set PWMA
+				green_b.value = False
+				red_b.value = False
+				red_detect = 0
+				green_detect = 0
+				#power = 0
+			#else:
+			if(color_b.value):
+				if(green_b.value ):
+					green_detect = 1
+					red_detect = 0
+
+				elif(red_b.value):
+					red_detect = 1
+					green_detect = 0
+
+				correctBlock(distance_center.value, centroid_x_val.value)
+				print("Followig Block...")
+			else:
+				correctAngle(heading_angle)
+				red_b.value = False
+				green_b.value = False
+				red_detect = 0
+				green_detect = 0
+				print("Following IMu...")
+
+					
 			#print("Button is pressed")
 			if(init_flag):
 				for power in np.arange(0,70, 0.01):
