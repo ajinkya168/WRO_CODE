@@ -114,11 +114,11 @@ def Centre(frame):
 	if(centroid_y < 360):
 		distance_c = 0 - distance_c
 	#print("centroid y =", centroid_y)
-	#print("distance_y :", centroid_y)
+	#print("distance_c :", distance_c)
 	# Calculate the center coordinates
 	center_x_green = width // 2 + 470
 	center_y = height // 2
-	center_x_red = width //2 - 500
+	center_x_red = width //2 - 470
 	# Define the cube vertices (8 points)
 	cube_size = 5
 	vertices_green = np.array([
@@ -165,7 +165,7 @@ def Centre(frame):
 		thickness = 1
 
 		finish = 0
-		if( centroid_y >= 600 ):
+		if( centroid_y >= 650):
 			thickness = 5
 			finish = 1 
 			
@@ -254,19 +254,19 @@ def correctBlock(distance_val, centroid_val):
 	#heading = find_heading(quat_real, quat_i, quat_j, quat_k)
 	#glob = heading
 	if(green_detect):
-		if(centroid_val  < 1130  ):	
+		if(centroid_val  < 1110  ):	
 			#print("INSIDE LOOP")
 			distance_val =  distance_val - 0
 		else:
 			distance_val =  0 - distance_val
 	elif(red_detect):
-		if(centroid_val  < 150 ):	
+		if(centroid_val  < 170 ):	
 			#print("INSIDE LOOP")
 			distance_val =  distance_val - 0
 		else:
 			distance_val =  0 - distance_val
 		#distance_y = 0 - distance_y
-	print("Distance :", distance_val)
+	#print("Distance :", distance_val)
 	error = distance_val - 0
 
 
@@ -507,14 +507,14 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 
 
 
-		lower = np.array([40, 88, 38])
+		lower = np.array([40, 88, 38]) #green
 		upper = np.array([59, 163, 122])
 		mask = cv2.inRange(hsv_img, lower, upper)
 		mask = cv2.dilate(mask, kernel, iterations=3)
 		mask = cv2.erode(mask, kernel, iterations=3)
 	
 
-		lower1 = np.array([155, 99, 56])
+		lower1 = np.array([155, 99, 56]) #red
 		upper1 = np.array([179, 190, 149])
 		mask1 = cv2.inRange(hsv_img1, lower1, upper1)
 		mask1 = cv2.dilate(mask1, kernel, iterations=3)
@@ -578,7 +578,9 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					centroid_y = y + h // 2
 
 						#color_b.value = True
-
+					if(centroid_y > 100):
+						#color_b.value = True
+						green_b.value = True
 					centroid_x_val.value = centroid_x
 					distance_x = centroid_x - center_x_green
 					distance_y = centroid_y - center_y
@@ -590,7 +592,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					img = get_dist(rect,img, "green")
 					distance.value = dist1
 					block.value = 1	
-					green_b.value = True	
+					#green_b.value = True	
 
 
 		#check for contour area
@@ -607,9 +609,9 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					centroid_x = x + w // 2
 					centroid_x_val.value = centroid_x
 					centroid_y = y + h // 2
-					#if(centroid_y > 50):
+					if(centroid_y > 100):
 						#color_b.value = True
-						#red_b.value = True
+						red_b.value = True
 					distance_x = centroid_x - center_x_red
 					distance_y = centroid_y - center_y
 					distance_c = sqrt(distance_x ** 2 + distance_y ** 2)
@@ -618,7 +620,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					img = get_dist(rect1,img, "red")            
 					distance.value = dist2
 					block.value = 2
-					red_b.value = True
+					#red_b.value = True
 
 		elif(red_present):
 				color_b.value = True
@@ -639,13 +641,15 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 						#red_b.value = True
 					distance_x = centroid_x - center_x_red
 					distance_y = centroid_y - center_y
+					if(centroid_y > 100):
+						red_b.value = True				
 					distance_c = sqrt(distance_x ** 2 + distance_y ** 2)
 					distance_center.value = distance_c
 					#correctBlock()
 					img = get_dist(rect1,img, "red")            
 					distance.value = dist2
 					block.value = 2
-					red_b.value = True			
+
 		elif(green_present):
 				color_b.value = True
 
@@ -661,9 +665,9 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					(x, y, w, h) = cv2.boundingRect(box)
 					centroid_x = x + w // 2
 					centroid_y = y + h // 2
-					#if(centroid_y > 50):
+					if(centroid_y > 100):
 						#color_b.value = True
-						#green_b.value = True
+						green_b.value = True
 					centroid_x_val.value = centroid_x	
 					distance_x = centroid_x - center_x_green
 					distance_y = centroid_y - center_y
@@ -761,13 +765,16 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 	pwm12.start(0)
 	power = 0
 	turn_flag = False
-	heading_angle = 0
+	current_heading_angle = -1
+	prev_heading_angle = 0
 	target_angle = 0
 	trigger = False
 	counter = 0
 	tf_flag = False
+	tf_off_time = 0
 	while True:
 		#tf_flag = False
+		
 		init_flag = False
 		#print("Color : ", color_b.value)
 		#correctAngle(heading_angle)
@@ -782,35 +789,44 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 		if(previous_state == 1 and button_state == 0):
 			button = not(button)
 			init_flag = True
-			tf_flag = True
-
 
 			
 		if(button):
 			
-			
-			getTFminiData()
+			current_time = time.time()
+			#global current_heading
+			#global tf_off_time
+			if(tf_flag and current_time - tf_off_time > 3):
+				tf_flag = False
+				
+			if not tf_flag :
+				getTFminiData()
+				#correctAngle(heading_angle)# Set PWMA	
+			else:
+				pass
 			correctAngle(heading_angle)# Set PWMA	
 			#correctBlock(distance_center.value, centroid_x_val.value)
 			#print("BLOCK IDENTIFIED :", stop_b.value)
 			#print("Red : {}. Green : {}".format(red_detect, green_detect))
 			if(stop_b.value):
 				#time.sleep(0.5)
-				correctAngle(heading_angle)# Set PWMA
-				
+				correctAngle(heading_angle - 10)# Set PWMA
+				time.sleep(0.5)
+				correctAngle(heading_angle)
 				#green_detect = 0
 
 				#power = 0
 			else:
+
 				if(color_b.value):
 					#tfflag = False
 					if(green_b.value ):
-
+						#correctAngle(heading_angle - 20)
 						green_detect = 1
 						red_detect = 0
 
 					elif(red_b.value):
-
+						#correctAngle(heading_angle + 20)
 						red_detect = 1
 						green_detect = 0
 			
@@ -834,7 +850,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 				global start_time
 				if(time.time() - start_time > 1.1):
 					power = 0
-			print("TRIGEEEER : {}, counter : {} , heading: {}, red : {}, green : {}, stop_b : {} ".format(trigger, counter, heading_angle, red_detect, green_detect, stop_b.value))
+			print("TRIGEEEER : {}, counter : {} , heading: {},  red : {}, green : {}, stop_b : {}, tf_flag : {}".format(trigger, counter, heading_angle, red_detect, green_detect, stop_b.value, tf_flag))
 			
 			#correctAngle(heading_angle)	
 
@@ -849,10 +865,13 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 					#time.sleep(0.5)
 					#tf_flag = False
 						#correctBlock(distance_center.value, centroid_x_val.value)	
-			if(distance_right > 100 and not trigger and distance_head < 100):
+			if(distance_right > 100 and not trigger and distance_head < 100 and not tf_flag):
 				counter = counter + 1
 				heading_angle = (90*counter)%360
 				trigger = True
+				tf_flag = True
+				tf_off_time = time.time()
+					
 				'''if((glob >= 0 and glob <=15) or (glob >= 343 and glob <= 370)):
 					heading_angle = 90
 					counter = counter + 1
@@ -892,9 +911,9 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 									
 				#tf_flag = False
 			#color_b.valpyue = False	'''					
-			
-			if(distance_right < 250 and distance_head > 75 ):
+			if(distance_right < 250 and distance_head > 100 ):
 				trigger = False
+				
 				
 			#print("	counter : {}, distance_head : {}, distance_left: {}, distance_right: {}, Theta: {}, IMU : {}".format(counter, distance_head, distance_left, distance_right, heading_angle, glob)) 
 		else:
@@ -902,6 +921,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 				init_flag = False
 
 			pwm12.ChangeDutyCycle(0)
+
 			heading_angle = 0
 			counter = 0
 			correctAngle(heading_angle)								

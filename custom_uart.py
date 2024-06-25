@@ -74,9 +74,22 @@ def getTFminiData():
 
 if __name__ == '__main__':
 	try:
+		CMD_DISABLE_HEADING = bytearray([0x56, 0x02, 0x00])
 		while True:
+
+			#getTFminiData()
+
+			data = int(input("Enter : "))
+			if(data == 1):
+				getTFminiData()
+			elif (data == 0):
+				pass
 			#time.sleep(1)
-			getTFminiData()
+			#CMD_ENABLE_HEADING = bytearray([0x56, 0x02, 0x01])
+
+# Send the command to disable heading output
+
+			#getTFminiData()
 			print("distance_Head : {}, distance_left: {}, distance_right: {}".format(distance_head, distance_left, distance_right)) 
 	except:  
 		pi.bb_serial_read_close(RX_Head)
