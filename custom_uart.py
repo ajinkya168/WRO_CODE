@@ -77,13 +77,9 @@ if __name__ == '__main__':
 		CMD_DISABLE_HEADING = bytearray([0x56, 0x02, 0x00])
 		while True:
 
-			#getTFminiData()
+			getTFminiData()
+	
 
-			data = int(input("Enter : "))
-			if(data == 1):
-				getTFminiData()
-			elif (data == 0):
-				pass
 			#time.sleep(1)
 			#CMD_ENABLE_HEADING = bytearray([0x56, 0x02, 0x01])
 

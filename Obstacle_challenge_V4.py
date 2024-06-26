@@ -80,6 +80,9 @@ kp_b = 0.02
 ki_b = 0
 kd_b = 0.003
 
+kp_us = 0.55
+ki_us = 0
+kd_us = 0.2
 setPoint_flag =  0
 
 
@@ -169,10 +172,10 @@ def Centre(frame):
 		thickness_red = 1
 		#thickness = 1
 		finish = 0
-		if( centroid_y >= 1000  and green_b.value ):
+		if( centroid_y >= 650 and green_b.value ):
 			thickness_green = 5
 			finish = 1 
-		if( centroid_y >= 1000 and red_b.value ):
+		if( centroid_y >= 650 and red_b.value ):
 			thickness_red = 5
 			finish = 1 
 						
@@ -189,11 +192,17 @@ def Centre(frame):
 	return frame
 
 
+distance_head = 0
+distance_right = 0
+distance_left = 0
+
 
 def getTFminiData():
 
   #while True:
-
+		global distance_head
+		global distance_right
+		global distance_left
 	
 	#while True:
 		time.sleep(0.01)	#change the value if needed
@@ -242,6 +251,112 @@ def getTFminiData():
 		        #print("distance_right : ", distance_right)
 
 
+def correctAngle(setPoint_gyro):
+	#print("INSIDE CORRECT")
+	global distance_right
+	global distance_c
+	global centroid_x
+	global centroid_y
+	global red_detect
+	global green_detect
+	global glob
+	#print("Red : {}. Green : {}"format(red_detect, green_detect))
+	error1 = 0
+	prevError1= 0
+	totalError1 = 0
+	correction1 = 0
+
+
+	error1 = distance_right - 50
+
+
+
+	pTerm1 = 0
+	dTerm1 = 0
+	iTerm1 = 0
+
+	pTerm1 = kp_us * error1
+	dTerm1 = -kd_us * (error1 - prevError1)
+	totalError1 += error1
+	iTerm1 = ki_us * totalError1
+	correction1 = pTerm1 + iTerm1 + dTerm1;
+	#print("correction : ", correction)
+	#print("Distance : {}, Centorid: {}, correction : {}".format(distance_val, centroid_val, correction))			
+	#if(heading > 180 and setPoint < 180):	
+		#heading =  heading - 360	
+	if (setPoint_flag == 0) :
+		if (correction1 > 30) :
+			correction1= 30
+		elif (correction1 < -30): 
+			correction1 = -30
+
+	else:
+	 
+		if (correction1 > 30) :
+			correction1 = 30
+		elif (correction1 < -30) :
+			correction1 = -30
+
+	#print("correction:	 ", e)	
+	
+	prevError1 = error1
+
+	#print("Error : {}, correction : {}, heading : {} ".format(error1, correction1 ))
+		
+	
+	##############################################################
+	error_gyro = 0
+	prevErrorGyro = 0
+	totalErrorGyro = 0
+	correction = 0
+	totalError = 0
+	prevError = 0
+	
+	quat_i, quat_j, quat_k, quat_real = bno.quaternion
+	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
+	glob = heading
+	if(heading > 180 and setPoint_gyro < 180):	
+		heading =  heading - 360
+
+	#print("Heading :", heading)
+	error_gyro = heading - setPoint_gyro
+
+
+	#print("Error : ", error_gyro)
+	pTerm = 0
+	dTerm = 0
+	iTerm = 0
+
+	pTerm = kp * error_gyro
+	dTerm = kd * (error_gyro - prevErrorGyro)
+	totalErrorGyro += error_gyro
+	iTerm = ki * totalErrorGyro
+	correction = pTerm + iTerm + dTerm;
+	#print("correction 1: ", correction)
+				
+	if(heading > 180 and setPoint_gyro < 180):	
+		heading =  heading - 360	
+	if (setPoint_flag == 0) :
+		if (correction > 30) :
+			correction = 30
+		elif (correction < -30): 
+			correction = -30
+
+	else:
+	 
+		if (correction > 30) :
+			correction = 30
+		elif (correction < -30) :
+			correction = -30
+
+	#print("correction: ", e)	
+	
+	prevErrorGyro = error_gyro
+	print("Error1 : {}, correction1 : {}, error : {}, correction : {} ".format(error1, correction1, error_gyro, correctio n ))
+	setAngle(90 - correction + correction1)
+
+
+
 def correctBlock(distance_val, centroid_val):
 	#print("INSIDE CORRECT")
 	global distance_x
@@ -261,13 +376,13 @@ def correctBlock(distance_val, centroid_val):
 	#heading = find_heading(quat_real, quat_i, quat_j, quat_k)
 	#glob = heading
 	if(green_detect):
-		if(centroid_val  < 1220  ):	
+		if(centroid_val  < 1180  ):	
 			#print("INSIDE LOOP")
 			distance_val =  distance_val - 0
 		else:
 			distance_val =  0 - distance_val
 	elif(red_detect):
-		if(centroid_val  < 280 ):	
+		if(centroid_val  < 150 ):	
 			#print("INSIDE LOOP")
 			distance_val =  distance_val - 0
 		else:
@@ -312,7 +427,7 @@ def correctBlock(distance_val, centroid_val):
 
 
 	
-def correctAngle(setPoint_gyro):
+"""def correctAngle(setPoint_gyro):
 	global glob
 	error_gyro = 0
 	prevErrorGyro = 0
@@ -362,7 +477,7 @@ def correctAngle(setPoint_gyro):
 	
 	prevErrorGyro = error_gyro
 
-	setAngle(90 - correction)
+	setAngle(90 - correction)"""
 
 	
 
@@ -481,7 +596,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 	global center_x_green
 	print("Image Process started")
 	picam2 = Picamera2()
-	picam2.preview_configuration.main.size = (1500,1200)
+	picam2.preview_configuration.main.size = (1280,720)
 	picam2.preview_configuration.main.format = "RGB888"
 	picam2.preview_configuration.align()
 	picam2.configure("preview")
@@ -490,7 +605,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 
 			#color_b.value = False
 	cv2.namedWindow('Object Dist Measure ',cv2.WINDOW_NORMAL)
-	cv2.resizeWindow('Object Dist Measure ', 640,380)
+	cv2.resizeWindow('Object Dist Measure ', 1280,720)
 
 	while True:
 
@@ -763,8 +878,8 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 		time.sleep(0.1)
 
 		#print("STOP_B :", stop_b.value)
-		#tf_flag = False
-		#block_flag = False
+		tf_flag = False
+		block_flag = False
 		previous_state = button_state
 		button_state = GPIO.input(5)
 		#print("Trigger: ",trigger)
@@ -775,37 +890,38 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 			
 			
 		if(button):
-			
+			"""getTFminiData()
+			correctAngle(heading_angle)"""
 			current_time = time.time()
 			correctAngle(heading_angle)
-			
-			if(tf_flag and current_time - tf_off_time > 4):
+			if(tf_flag and current_time - tf_off_time > 3):
 				tf_flag = False
-				#trigger = False
 			
-			if(block_flag and current_time - block_off_time > 2):
+			if(block_flag and current_time - block_off_time > 0.2):
 				block_flag = False
 			
-
-				#color_b.value = False
-				#correctBlock(distance_center.value, centroid_x_val.value)			
+			if not block_flag:
+				pass
+			else:
+				correctAngle(heading_angle)
+				
 			if not tf_flag :
 				getTFminiData()
 
-				#correctBlock(distance_center.value, centroid_x_val.value)				
-				#correctAngle(heading_angle)	
+			else:
+				
+				correctAngle(heading_angle)
+				
+
 			if(stop_b.value):
-				block_flag = True
-				block_off_time = time.time()
+	
 				correctAngle(heading_angle)
 
 
 			else:
 
-				if(color_b.value and not block_flag):
-					#tf_flag = True
-					#tf_flag = True
-					#tf_off_time = time.time()
+				if(color_b.value and not tf_flag):
+					tf_flag = True
 					if(green_b.value ):
 
 						green_detect = 1
@@ -820,15 +936,14 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 					
 					print("Followig Block...")
 				else:
-					color_b.value = False
 					correctAngle(heading_angle)
-					#correctBlock(distance_center.value, centroid_x_val.value)				
+
 					print("Following IMu...")
 
-			#print("stop_b : {}, block_flag: {}".format(stop_b.value, block_flag))		
+					
 			#print("Button is pressed")
 			if(init_flag):
-				for power in np.arange(0, 60, 0.01):
+				for power in np.arange(0,70, 0.01):
 					pwm12.ChangeDutyCycle(power)# Set PWMA
 				init_flag = False
 			pwm12.ChangeDutyCycle(power)
@@ -837,7 +952,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 				global start_time
 				if(time.time() - start_time > 1.1):
 					power = 0
-			print("TRIGEEEER : {}, counter : {} , heading: {}, glob : {},  stop_b : {}, tf_flag : {}, block_flag:{}".format(trigger, counter, heading_angle, glob, stop_b.value, tf_flag, block_flag))
+			#print("TRIGEEEER : {}, counter : {} , heading: {}, glob : {},  stop_b : {}, tf_flag : {}".format(trigger, counter, heading_angle, glob, stop_b.value, tf_flag))
 			
 
 
@@ -849,13 +964,16 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 					start_time = time.time()
 					counter = -1
 	
-			if(distance_right > 100 and not trigger and distance_head < 150 and not tf_flag):
+			if(distance_right > 100 and not trigger and distance_head < 150 and not tf_flag and not block_flag):
 				counter = counter + 1
 				heading_angle = (90*counter)%360
 				trigger = True
 				tf_flag = True
+
 				tf_off_time = time.time()
-				
+				if(stop_b.value):
+					block_flag = True
+					block_off_time = time.time()
 							
 				'''if((glob >= 0 and glob <=15) or (glob >= 343 and glob <= 370)):
 					heading_angle = 90
@@ -898,6 +1016,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 			#color_b.valpyue = False	'''					
 			if(distance_right < 100 and distance_head > 100 ):
 				trigger = False
+
 
 		else:
 			if(init_flag):
