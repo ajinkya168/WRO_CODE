@@ -18,14 +18,16 @@ from adafruit_bno08x import (
 from adafruit_bno08x.i2c import BNO08X_I2C
 os.system("sudo pkill pigpiod")
 os.system("sudo pigpiod")
+
+time.sleep(5)
 i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
+
 bno = BNO08X_I2C(i2c)
 bno.enable_feature(BNO_REPORT_ACCELEROMETER)
 bno.enable_feature(BNO_REPORT_GYROSCOPE)
 bno.enable_feature(BNO_REPORT_MAGNETOMETER)
 bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
 
-time.sleep(5)
 glob = 0
 
 GPIO.setmode(GPIO.BCM)
@@ -267,8 +269,8 @@ def correctBlock(distance_val, centroid_val):
 		else:
 			distance_val =  0 - distance_val
 	elif(red_detect):
-		if(centroid_val  < 280 ):	
-			#print("INSIDE LOOP")
+		if(centroid_val  < 200 ):	
+			#print("INSIDE000OP")
 			distance_val =  distance_val - 0
 		else:
 			distance_val =  0 - distance_val
@@ -779,21 +781,32 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, centroid_y
 		if(button):
 			
 			current_time = time.time()
-			#correctAngle(heading_angle)
+			#c
 			
-			if(centroid_y_val.value < 300):
-				color_b.value = False
+			if(centroid_x_val.value < 1200 and centroid_x_val.value > 200): #and centroid_x_val.value):
+				#block_flag = True
+				"""if(red_b.value and centroid_x_val.value > 750):
+					color_b.value = False
+				elif(green_b.value and centroid_x_val.value < 750):
+					color_b.value = False
+				else:
+					color_b.value = True"""
+				correctBlock(distance_center.value, centroid_x_val.value)
+				
 			else:
-				color_b.value = True
+				correctBlock(distance_center.value, centroid_x_val.value)
 
 			if(tf_flag and current_time - tf_off_time > 4):
 				tf_flag = False
 				#trigger = False
 			
-			if(block_flag and current_time - block_off_time > 3):
+			if(block_flag and current_time - block_off_time > 1):
 				block_flag = False
 				#color_b.value = False
-				#correctBlock(distance_center.value, centroid_x_val.value)			
+				#correctBlock(distance_center.value, centroid_x_val.value)
+				
+			if block_flag:
+				correctAngle(heading_angle)
 			if not tf_flag :
 				getTFminiData()
 
@@ -860,21 +873,9 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, centroid_y
 				trigger = True
 				tf_flag = True
 				tf_off_time = time.time()
-				if(color_b.value and not block_flag):
-						#tf_flag = True
-						#tf_flag = True
-						#tf_off_time = time.time()
-						if(green_b.value ):
-
-							green_detect = 1
-							red_detect = 0
-
-						elif(red_b.value):
-
-							red_detect = 1
-							green_detect = 0
+				if(color_b.value):
 				
-						correctBlock(distance_center.value, centroid_x_val.value)
+					correctBlock(distance_center.value, centroid_x_val.value)  
 								
 				'''if((glob >= 0 and glob <=15) or (glob >= 343 and glob <= 370)):
 					heading_angle = 90
@@ -959,5 +960,7 @@ if __name__ == '__main__':
 		pwm.bb_serial_read_close(RX_Left)
 		pwm.bb_serial_read_close(RX_Right)
 		pwm.stop()
-		GPIO.cleanup()			
+		GPIO.cleanup()
+		
+			
 
