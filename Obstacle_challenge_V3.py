@@ -782,8 +782,8 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, centroid_y
 			
 			current_time = time.time()
 			#c
-			
-			if(centroid_x_val.value < 1200 and centroid_x_val.value > 200): #and centroid_x_val.value):
+  
+			if(centroid_x_val.value < 1400 and centroid_x_val.value > 200 and distance_right > 20 ): #and centroid_x_val.value):
 				#block_flag = True
 				"""if(red_b.value and centroid_x_val.value > 750):
 					color_b.value = False
@@ -791,16 +791,19 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, centroid_y
 					color_b.value = False
 				else:
 					color_b.value = True"""
-				correctBlock(distance_center.value, centroid_x_val.value)
+				color_b.value = True
+				#block_flag = True
+				#correctBlock(distance_center.value, centroid_x_val.value)
 				
 			else:
-				correctBlock(distance_center.value, centroid_x_val.value)
+				color_b.value = False
+				correctAngle(heading_angle)
 
 			if(tf_flag and current_time - tf_off_time > 4):
 				tf_flag = False
 				#trigger = False
 			
-			if(block_flag and current_time - block_off_time > 1):
+			if(block_flag and current_time - block_off_time > 0.5):
 				block_flag = False
 				#color_b.value = False
 				#correctBlock(distance_center.value, centroid_x_val.value)
@@ -813,6 +816,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, centroid_y
 				#correctBlock(distance_center.value, centroid_x_val.value)				
 				#correctAngle(heading_angle)	
 			if(stop_b.value):
+
 				block_flag = True
 				block_off_time = time.time()
 				correctAngle(heading_angle)
@@ -873,10 +877,15 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, centroid_y
 				trigger = True
 				tf_flag = True
 				tf_off_time = time.time()
-				if(color_b.value):
-				
-					correctBlock(distance_center.value, centroid_x_val.value)  
-								
+
+				if(color_b.value and not block_flag):
+
+					if(green_b.value ):
+						heading_angle = heading_angle - 90
+						time.sleep(2)
+						heading_angle = (90*counter)%360
+					#correctBlock(distance_center.value, centroid_x_val.value)
+									
 				'''if((glob >= 0 and glob <=15) or (glob >= 343 and glob <= 370)):
 					heading_angle = 90
 					counter = counter + 1
