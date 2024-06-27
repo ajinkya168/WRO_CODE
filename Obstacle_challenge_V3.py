@@ -470,7 +470,7 @@ def resize_final_img(x,y,*argv):
     return images
 
 #loop to capture video frames
-def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b, red_b, green_b):
+def Live_Feed(distance, block, distance_center, centroid_x_val, centroid_y_val, color_b, stop_b, red_b, green_b):
 	global distance_x
 	global distance_y
 	global distance_c
@@ -584,7 +584,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					centroid_y = y + h // 2
 
 						#color_b.value = True
-
+					centroid_y_val.value = centroid_y						
 					centroid_x_val.value = centroid_x
 					distance_x = centroid_x - center_x_green
 					distance_y = centroid_y - center_y
@@ -613,7 +613,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					centroid_x = x + w // 2
 					centroid_x_val.value = centroid_x
 					centroid_y = y + h // 2
-		
+					centroid_y_val.value = centroid_y								
 					distance_x = centroid_x - center_x_red
 					distance_y = centroid_y - center_y
 					distance_c = sqrt(distance_x ** 2 + distance_y ** 2)
@@ -638,6 +638,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					centroid_x = x + w // 2
 					centroid_x_val.value = centroid_x	
 					centroid_y = y + h // 2
+					centroid_y_val.value = centroid_y						
 					#if(centroid_y > 50):
 						#color_b.value = True
 						#red_b.value = True
@@ -671,6 +672,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 					centroid_x_val.value = centroid_x	
 					distance_x = centroid_x - center_x_green
 					distance_y = centroid_y - center_y
+					centroid_y_val.value = centroid_y						
 					distance_c = sqrt(distance_x ** 2 + distance_y ** 2)
 					distance_center.value = distance_c
 					#correctBlock()
@@ -720,7 +722,7 @@ def Live_Feed(distance, block, distance_center, centroid_x_val, color_b, stop_b,
 
 
 	
-def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, stop_b, red_b, green_b):
+def servoDrive(distance, block, pwm, distance_center, centroid_x_val, centroid_y_val, color_b, stop_b, red_b, green_b):
 	#print("ServoProcess started")
 	global heading
 	global red_detect
@@ -777,16 +779,19 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 		if(button):
 			
 			current_time = time.time()
-			correctAngle(heading_angle)
+			#correctAngle(heading_angle)
 			
+			if(centroid_y_val.value < 300):
+				color_b.value = False
+			else:
+				color_b.value = True
+
 			if(tf_flag and current_time - tf_off_time > 4):
 				tf_flag = False
 				#trigger = False
 			
-			if(block_flag and current_time - block_off_time > 2):
+			if(block_flag and current_time - block_off_time > 3):
 				block_flag = False
-			
-
 				#color_b.value = False
 				#correctBlock(distance_center.value, centroid_x_val.value)			
 			if not tf_flag :
@@ -820,7 +825,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 					
 					print("Followig Block...")
 				else:
-					color_b.value = False
+					#color_b.value = False
 					correctAngle(heading_angle)
 					#correctBlock(distance_center.value, centroid_x_val.value)				
 					print("Following IMu...")
@@ -855,8 +860,22 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 				trigger = True
 				tf_flag = True
 				tf_off_time = time.time()
+				if(color_b.value and not block_flag):
+						#tf_flag = True
+						#tf_flag = True
+						#tf_off_time = time.time()
+						if(green_b.value ):
+
+							green_detect = 1
+							red_detect = 0
+
+						elif(red_b.value):
+
+							red_detect = 1
+							green_detect = 0
 				
-							
+						correctBlock(distance_center.value, centroid_x_val.value)
+								
 				'''if((glob >= 0 and glob <=15) or (glob >= 343 and glob <= 370)):
 					heading_angle = 90
 					counter = counter + 1
@@ -912,6 +931,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, color_b, s
 			stop_b.value = False
 			red_b.value = False
 			green_b.value = False
+			block_flag = False
 
 
 
@@ -923,12 +943,13 @@ if __name__ == '__main__':
 		block = multiprocessing.Value('i', 0)
 		distance_center = multiprocessing.Value('f', 0.0)
 		centroid_x_val = multiprocessing.Value('f', 0.0)
+		centroid_y_val = multiprocessing.Value('f', 0.0)		
 		color_b = multiprocessing.Value('b', False)
 		stop_b = multiprocessing.Value('b', False)
 		red_b = multiprocessing.Value('b', False) 
 		green_b = multiprocessing.Value('b', False) 
-		P = multiprocessing.Process(target = Live_Feed, args = (distance, block, distance_center, centroid_x_val, color_b, stop_b, red_b, green_b))
-		S = multiprocessing.Process(target = servoDrive, args = (distance, block, pwm, distance_center, centroid_x_val, color_b, stop_b, red_b, green_b))
+		P = multiprocessing.Process(target = Live_Feed, args = (distance, block, distance_center, centroid_x_val, centroid_y_val, color_b, stop_b, red_b, green_b))
+		S = multiprocessing.Process(target = servoDrive, args = (distance, block, pwm, distance_center, centroid_x_val, centroid_y_val, color_b, stop_b, red_b, green_b))
 
 		P.start()
 		S.start()
