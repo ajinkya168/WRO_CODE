@@ -793,7 +793,7 @@ def servoDrive(distance, block, pwm, distance_center, centroid_x_val, centroid_y
 					color_b.value = True"""
 				color_b.value = True
 				#block_flag = True
-				#correctBlock(distance_center.value, centroid_x_val.value)
+				correctBlock(distance_center.value, centroid_x_val.value)
 				
 			else:
 				color_b.value = False
