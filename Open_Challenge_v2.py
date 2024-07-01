@@ -140,7 +140,7 @@ def getTFminiData():
 
 
 	
-def correctAngle(setPoint_gyro):
+def correctAngle(setPoint_gyro, left, right):
 	global glob
 	error_gyro = 0
 	prevErrorGyro = 0
@@ -152,13 +152,25 @@ def correctAngle(setPoint_gyro):
 	quat_i, quat_j, quat_k, quat_real = bno.quaternion
 	heading = find_heading(quat_real, quat_i, quat_j, quat_k)
 	glob = heading
-	if(setPoint_gyro < 0):
-		setPoint_gyro = 0 - setPoint_gyro
-	if(heading > 180 and setPoint_gyro <= 180):	
-		heading =  heading - 360
 
+	'''if not right and not left or right and not left:
+		if((heading > 180 and setPoint_gyro < 180)):
+			heading =  heading - 360
+
+	elif left and not right:
+		if((heading < 180 and abs(setPoint_gyro) < 0)):
+			heading = heading - 360'''
+			
+			
+
+
+	#if(heading > 18)
 	#print("Heading :", heading) 
 	error_gyro = heading - setPoint_gyro
+
+	if((error_gyro > 180 )):
+		error_gyro =  error_gyro - 360
+
 
 
 	#print("Error : ", error_gyro)
@@ -173,8 +185,8 @@ def correctAngle(setPoint_gyro):
 	correction = pTerm + iTerm + dTerm;
 	#print("correction 1: ", correction)
 				
-	if(heading > 180 and setPoint_gyro < 180):	
-		heading =  heading - 360	
+	'''if(heading > 180 and setPoint_gyro < 180):	
+		heading =  heading - 360'''	
 	if (setPoint_flag == 0) :
 		if (correction > 30) :
 			correction = 30
@@ -189,10 +201,9 @@ def correctAngle(setPoint_gyro):
 			correction = -35
 
 	#print("correction: ", e)	
-	
+	#print("heading: {}, error: {}, correction: {}, left:{}, right: {}".format(heading, error_gyro, correction, left, right))
 	prevErrorGyro = error_gyro
-
-	setAngle(91 - correction)
+	setAngle(90 - correction)
 
 	
 
@@ -426,34 +437,7 @@ def Live_Feed(distance, block):
 					img = get_dist(rect,img, "green")
 					distance.value = dist1
 					block.value = 1			
-		"""for cnt, cnt1 in zip(cont, cont1):
-		#check for contour area
-			if(cv2.contourArea(cnt) > cv2.contourArea(cnt1)):
-				if (cv2.contourArea(cnt)>100 and cv2.contourArea(cnt)<306000):
 
-					#Draw a rectange on the contour
-					rect = cv2.minAreaRect(cnt)
-					box = cv2.boxPoints(rect) 
-					box = np.int0(box)
-					cv2.drawContours(img,[box], -1,(255,0,0),3)
-
-					img = get_dist(rect,img, "green")
-					distance.value = dist1
-					block.value = 1		    
-
-		#check for contour area
-			else:
-				if (cv2.contourArea(cnt1)>100 and cv2.contourArea(cnt1)<306000):
-
-					#Draw a rectange on the contour
-					rect1 = cv2.minAreaRect(cnt1)
-					box = cv2.boxPoints(rect1) 
-					box = np.int0(box)
-					cv2.drawContours(img,[box], -1,(255,0,0),3)
-
-					img = get_dist(rect1,img, "red")            
-					distance.value = dist2
-					block.value = 2	"""
 						   
 		cv2.imshow('Object Dist Measure ',img)
 
@@ -487,6 +471,7 @@ def greenDrive():
 	correctAngle(0)	
 
 
+
 	
 def servoDrive(distance, block, pwm):
 	print("ServoProcess started")
@@ -509,7 +494,7 @@ def servoDrive(distance, block, pwm):
 	previous_state = 0
 	button_state = 0
 	button  = False
-	correctAngle(0)	
+	start_time = 0
 	pwm12.start(0)
 	power = 0
 	turn_flag = False
@@ -519,16 +504,17 @@ def servoDrive(distance, block, pwm):
 	counter = 0
 	left_flag = False
 	right_flag = False
+	correctAngle(0, left_flag, right_flag)
 	while True:
 		init_flag = False
 		
-		correctAngle(heading_angle)
+		correctAngle(heading_angle, left_flag, right_flag)
 		time.sleep(0.1)
 		getTFminiData()
 
 		previous_state = button_state
 		button_state = GPIO.input(5)
-		print("Trigger: ",trigger)
+		#print("Trigger: ",trigger)
 		
 		if(previous_state == 1 and button_state == 0):
 			button = not(button)
@@ -538,30 +524,32 @@ def servoDrive(distance, block, pwm):
 			print("Button is pressed")
 		if(button):
 			#bno.init()
-			if(distance_right > 100):
-				right_flag = True
-				
-								#pwm.bb_serial_read_close(RX_Left)
-			elif(distance_left > 100):
-				left_flag = True
-				#pwm.bb_serial_read_close(RX_Right)
-			if(counter == -1):
-				global start_time
-				if(time.time() - start_time > 1.1):
-					power = 0
+			if not right_flag and not left_flag:
+				if(distance_right > 100):
+					right_flag = True
+					
+									#pwm.bb_serial_read_close(RX_Left)
+				elif(distance_left > 100):
+					left_flag = True
+					#pwm.bb_serial_read_close(RX_Right)
+
 			print(trigger)
 			
-			correctAngle(heading_angle)	
+			correctAngle(heading_angle, left_flag, right_flag)
 
 			if(init_flag):
 				for power in np.arange(0,100, 0.01):
 					pwm12.ChangeDutyCycle(power)# Set PWMA
+					#pass
 				init_flag = False
 			pwm12.ChangeDutyCycle(power)
 
 			GPIO.output(20, GPIO.HIGH) # Set AIN1
 			if(right_flag):
 				distance_left = -1
+				if(counter == -1):
+					if(time.time() - start_time > 1.1):
+						power = 0
 				if(counter == 12 ):
 				
 					if(distance_head < 175 and distance_right < 85 and not trigger):
@@ -574,65 +562,75 @@ def servoDrive(distance, block, pwm):
 						if((glob >= 0 and glob <=15) or (glob >= 343 and glob <= 370)):
 							heading_angle = 90
 							counter = counter + 1
-							#correctAngle(heading_angle)
-							
+
 
 						elif(glob >= 78 and glob <= 105):
 							heading_angle = 180
 							counter = counter + 1
-							#correctAngle(heading_angle)
+
 							
 						elif(glob >= 165 and glob <= 190):
 							heading_angle = 270
 							counter = counter + 1
-							#correctAngle(heading_angle)
+
 							
 						elif(glob >= 255 and glob <= 283):
 							heading_angle = 0
 							counter = counter + 1
-							#correctAngle(heading_angle)
+
 						trigger = True
 				if(distance_right < 85 and distance_head > 75):
 					trigger = False
 			elif(left_flag):
-				distance_right = -1		
-				if(distance_left > 100 and not trigger and distance_head < 75):
+				distance_right = -1
+				if(counter == -1):
+
+					if(time.time() - start_time > 1.1):
+						power = 0
+				if(counter == 12 ):
+				
+					if(distance_head < 175 and distance_left < 85 and not trigger):
+						start_time = time.time()
+						counter = -1		
+				if(distance_left > 150 and not trigger and distance_head < 75):
 						#time.sleep(0.5)
 						
 						if((glob >= 0 and glob <=15) or (glob >= 343 and glob <= 370)):
 							heading_angle = -90
 							counter = counter + 1 
-							#correctAngle(heading_angle)
-							
 
+						
 						elif(glob >= 255 and glob <= 283): #78 and glob <= 105
 							heading_angle = -180
 							counter = counter + 1
-							#correctAngle(heading_angle)
+
 							
 						elif(glob >= 165 and glob <= 190): #165 and glob <= 190
 							heading_angle = -270
 							counter = counter + 1
-							#correctAngle(heading_angle)
+
 							
 						elif(glob >= 78 and glob <= 105): #255 and glob <= 283
-							heading_angle = -360
+							heading_angle = -0
 							counter = counter + 1
-							#correctAngle(heading_angle)
+
 						trigger = True
 		
 
-				elif(distance_left < 85 and distance_head > 75):
-					trigger = False	
+				elif(distance_left < 100 and distance_head > 75):
+					trigger = False
+		
 				
-			print("	counter : {}, distance_head : {}, distance_left: {}, distance_right: {}, Theta: {}, IMU : {}".format(counter, distance_head, distance_left, distance_right, heading_angle, glob)) 
+			print("Trigger : {}, counter : {}, distance_head : {}, distance_left: {}, distance_right: {}, Theta: {}, IMU : {}".format(trigger, counter, distance_head, distance_left, distance_right, heading_angle, glob)) 
 		else:
 			if(init_flag):
 				init_flag = False
 			pwm12.ChangeDutyCycle(0)
 			heading_angle = 0
 			counter = 0
-			correctAngle(heading_angle)
+			left_flag = False
+			right_flag = False
+			correctAngle(heading_angle, left_flag, right_flag)
 			
 			
 			
@@ -650,16 +648,16 @@ if __name__ == '__main__':
 		distance = multiprocessing.Value('f', 0.0)
 		block = multiprocessing.Value('i', 0)
 
-
 		S = multiprocessing.Process(target = servoDrive, args = (distance, block, pwm ))
 
 
 		S.start()
 
-	except:
+	except KeyboardInterrupt:
 		pwm.bb_serial_read_close(RX_Head)
 		pwm.bb_serial_read_close(RX_Left)
 		pwm.bb_serial_read_close(RX_Right)
 		pwm.stop()
+		pwm12.ChangeDutyCycle(0)
 		GPIO.cleanup()			
 

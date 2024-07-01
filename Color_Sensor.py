@@ -1,41 +1,60 @@
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
-# SPDX-License-Identifier: MIT
-
-# Simple demo of the TCS34725 color sensor.
-# Will detect the color from the sensor and print it out every second.
+import pigpio
 import time
-import board
-import adafruit_tcs34725
-import busio
-i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
-# Create sensor object, communicating over the board's default I2C bus
-#i2c = board.I2C()  # uses board.SCL and board.SDA
-# i2c = board.STEMMA_I2C()  # For using the built-in STEMMA QT connector on a microcontroller
-sensor = adafruit_tcs34725.TCS34725(i2c)
 
-# Change sensor integration time to values between 2.4 and 614.4 milliseconds
-# sensor.integration_time = 150
+s2 = 15
+s3 = 14
+signal = 18
+NUM_CYCLES = 1
 
-# Change sensor gain to 1, 4, 16, or 60
-# sensor.gain = 4
+def setup(pi):
+  pi.set_mode(s2, pigpio.OUTPUT)
+  pi.set_mode(s3, pigpio.OUTPUT)
+  pi.set_mode(signal, pigpio.INPUT)
+  pi.set_pull_up_down(signal, pigpio.PUD_UP)
+  print("\n")
 
-# Main loop reading color and printing it every second.
-while True:
-    # Raw data from the sensor in a 4-tuple of red, green, blue, clear light component values
-    # print(sensor.color_raw)
+def loop(pi):
+  temp = 1
+  while True:
+    pi.write(s2, 0)
+    pi.write(s3, 0)
+    time.sleep(0.3)
+    start = time.time()
+    for impulse_count in range(NUM_CYCLES):
+      pi.wait_for_edge(signal, pigpio.FALLING_EDGE, 1000)
+    duration = time.time() - start
+    red = NUM_CYCLES / duration
+    print("red value - ", red)
 
-    color = sensor.color
-    color_rgb = sensor.color_rgb_bytes
-    print(
-        "RGB color as 8 bits per channel int: #{0:02X} or as 3-tuple: {1}".format(
-            color, color_rgb
-        )
-    )
+    pi.write(s2, 0)
+    pi.write(s3, 1)
+    time.sleep(0.3)
+    start = time.time()
+    for impulse_count in range(NUM_CYCLES):
+      pi.wait_for_edge(signal, pigpio.FALLING_EDGE, 1000)
+    duration = time.time() - start
+    blue = NUM_CYCLES / duration
+    print("blue value - ", blue)
 
-    # Read the color temperature and lux of the sensor too.
-    temp = sensor.color_temperature
-    lux = sensor.lux
-    print("Temperature: {0}K Lux: {1}\n".format(temp, lux))
-    # Delay for a second and repeat.
-    time.sleep(1.0)
+    pi.write(s2, 1)
+    pi.write(s3, 1)
+    time.sleep(0.3)
+    start = time.time()
+    for impulse_count in range(NUM_CYCLES):
+      pi.wait_for_edge(signal, pigpio.FALLING_EDGE, 1000)
+    duration = time.time() - start
+    green = NUM_CYCLES / duration
+    print("green value - ", green)
+    #time.sleep(2)
 
+def endprogram(pi):
+  pi.stop()
+
+if __name__ == '__main__':
+  pi = pigpio.pi()
+  setup(pi)
+
+  try:
+    loop(pi)
+  except KeyboardInterrupt:
+    endprogram(pi)

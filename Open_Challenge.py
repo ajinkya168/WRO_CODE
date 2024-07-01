@@ -154,7 +154,7 @@ def correctAngle(setPoint_gyro):
 	glob = heading
 	if(heading > 180 and setPoint_gyro < 180):	
 		heading =  heading - 360
-
+	
 	#print("Heading :", heading)
 	error_gyro = heading - setPoint_gyro
 
